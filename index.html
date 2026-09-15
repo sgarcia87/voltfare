@@ -48,7 +48,7 @@
             <div class="stat"><span>Duración</span><strong id="duration">00:00</strong></div>
             <div class="stat"><span>Velocidad</span><strong id="speed">0 <small>km/h</small></strong></div>
           </div>
-          <div class="actions">
+          <div class="actions"><button id="waitBtn" class="gear" disabled>Iniciar espera</button><button id="adjustBtn" class="gear" disabled>Ajustar kilómetros</button></div><div class="actions">
             <button id="mainBtn" class="primary">Iniciar trayecto</button>
             <button id="finishBtn" class="finish" disabled>Finalizar</button>
           </div>
@@ -58,7 +58,7 @@
         <div id="map" aria-label="Mapa del recorrido"></div>
         <p id="gpsInfo" role="status">El mapa se centrará al recibir ubicación.</p>
         <button class="gear" id="locateBtn">Localizarme</button>
-        <h2>Desglose</h2>
+        <p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
         <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
         <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
         <div class="row"><span>Tiempo</span><strong id="timeLine">0,00 €</strong></div>
@@ -78,7 +78,7 @@
         <div class="field"><label for="base">Importe inicial (€)</label><input id="base" type="number" min="0" step="0.01" value="3.50"></div>
         <div class="field"><label for="perKm">Precio por km (€)</label><input id="perKm" type="number" min="0" step="0.01" value="1.35"></div>
         <div class="field"><label for="perMin">Precio por minuto (€)</label><input id="perMin" type="number" min="0" step="0.01" value="0.28"></div>
-        <div class="field"><label for="extra">Suplementos (€)</label><input id="extra" type="number" min="0" step="0.01" value="0"></div>
+        <div class="field"><label for="waitRate">Espera manual (€/min)</label><input id="waitRate" type="number" min="0" max="10000" step="0.01" value="0.28" required></div><div class="field"><label for="extra">Suplementos (€)</label><input id="extra" type="number" min="0" step="0.01" value="0"></div>
         <div class="field wide"><label for="minimum">Precio mínimo total (€)</label><input id="minimum" type="number" min="0" max="10000" step="0.01" value="0"><small>0 desactiva el mínimo. Se aplica al total, incluidos suplementos.</small></div>
         <div class="field"><label for="issuer">Nombre / empresa (opcional)</label><input id="issuer" maxlength="120"></div>
         <div class="field"><label for="plate">Matrícula (opcional)</label><input id="plate" maxlength="30"></div>
@@ -87,21 +87,23 @@
       </div>
     </form>
   </dialog>
+  <dialog id="adjustment"><form class="modal" id="adjustForm"><div class="modal-head"><h2>Ajustar kilómetros</h2><button type="button" class="close" data-close="adjustment" aria-label="Cerrar">×</button></div><p>Introduce la distancia TOTAL del viaje, por ejemplo la diferencia del cuentakilómetros. Sustituye el total actual; no se suma. El recibo conservará el motivo.</p><div class="form"><div class="field"><label for="manualKm">Total del viaje (km)</label><input id="manualKm" type="number" min="0" max="100000" step="0.001" required></div><div class="field wide"><label for="manualReason">Motivo / lectura del cuentakilómetros</label><input id="manualReason" maxlength="200" required></div><button class="save">Aplicar ajuste</button></div></form></dialog>
   <div class="toast" id="toast" role="status"></div>
   <dialog id="history"><div class="modal"><div class="modal-head"><h2>Historial de trayectos</h2><button class="close" data-close="history" aria-label="Cerrar">×</button></div><p>Guardado solo en este navegador y dispositivo. Si borras sus datos, perderás el historial. Descarga los recibos que quieras conservar.</p><div id="historyList"></div><button class="gear" id="moreBtn" hidden>Cargar más</button></div></dialog>
   <dialog id="receipt"><div class="modal"><div class="modal-head no-print"><h2>Recibo de trayecto</h2><button class="close" data-close="receipt" aria-label="Cerrar">×</button></div><article id="receiptBody"></article><div class="receipt-actions no-print"><button class="primary" id="printBtn">Imprimir / guardar PDF</button><button class="gear" id="downloadBtn">Descargar recibo</button></div><p class="no-print">En el diálogo de impresión elige «Guardar como PDF», si tu navegador lo permite.</p></div></dialog>
   <style>
     #map{height:240px;min-height:240px;border-radius:16px;background:#202b35;z-index:0}
-    #gpsInfo{font-size:14px;color:var(--muted);line-height:1.4;margin:10px 0}
+    #connectionInfo,#qualityInfo{font-size:13px;color:var(--mint);line-height:1.5}.actions{margin-top:12px}#gpsInfo{font-size:14px;color:var(--muted);line-height:1.4;margin:10px 0}
     #locateBtn{margin-bottom:22px} .side h2{margin-top:4px;margin-bottom:8px}.side .row{padding:10px 0}
     dialog{max-height:90vh;overflow:auto}#history{width:min(800px,calc(100vw - 32px))}#receipt{width:min(650px,calc(100vw - 32px))}
     .trip-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0;border-bottom:1px solid var(--line)}
     .trip-row small{display:block;color:var(--muted);margin-top:6px} .receipt-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:25px}.receipt-actions .primary{padding:12px 20px;min-height:50px}
     #receiptBody{line-height:1.6;overflow-wrap:anywhere}#receiptBody h1{font-size:1.6rem}#receiptBody table{width:100%;border-collapse:collapse}#receiptBody td{padding:8px 0;border-bottom:1px solid var(--line)}#receiptBody td:last-child{text-align:right}
     .field small{display:block;line-height:1.5;color:var(--muted);margin-top:8px}button:disabled{opacity:.45;cursor:not-allowed}header{flex-wrap:wrap}.price{font-size:clamp(3rem,11vw,9rem)}.meter{min-width:0}
-    @media print{body{background:white!important;color:black!important}.app,#toast,#history,#settings,.no-print{display:none!important}dialog#receipt{position:static;display:block;border:0;background:white;color:black;max-width:none;width:100%;max-height:none;overflow:visible;box-shadow:none}dialog::backdrop{background:transparent}#receiptBody td{border-color:#ccc}.modal{padding:0}@page{margin:18mm}}
+    @media print{body{background:white!important;color:black!important}.app,#toast,#history,#settings,#adjustment,.no-print{display:none!important}dialog#receipt{position:static;display:block;border:0;background:white;color:black;max-width:none;width:100%;max-height:none;overflow:visible;box-shadow:none}dialog::backdrop{background:transparent}#receiptBody td{border-color:#ccc}.modal{padding:0}@page{margin:18mm}}
   </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <script src="./app.js"></script>
 </body>
 </html>
+

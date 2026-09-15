@@ -5,7 +5,7 @@
 ### Tu trayecto. Tu tarifa. Todo en el navegador.
 
 **Estimador de tarifas VTC con GPS, pensado para la pantalla del Tesla.**  
-Mapa en directo · Precio mínimo · Historial local · Recibos descargables
+Mapa en directo · Recuperación GPS · Uso sin internet · Historial y recibos
 
 [![Abrir VoltFare](https://img.shields.io/badge/ABRIR_VOLTFARE-7cf7c4?style=for-the-badge&logo=googlechrome&logoColor=080b10)](https://sgarcia87.github.io/voltfare/)
 [![Guía rápida](https://img.shields.io/badge/GUÍA_RÁPIDA-11161d?style=for-the-badge&logo=readthedocs&logoColor=white)](#-empieza-en-un-minuto)
@@ -51,7 +51,7 @@ Está diseñada con lectura grande, modo oscuro y disposición horizontal para l
 5. Al terminar, pulsa **Finalizar** y confirma el guardado. Se abrirá el recibo.
 6. Recupera los servicios anteriores desde **Historial y recibos**.
 
-**Configura y manipula la aplicación con el vehículo detenido.** No recargues ni cierres la pestaña durante un viaje: el trayecto en curso está en memoria.
+**Configura y manipula la aplicación con el vehículo detenido.** Mantén la pestaña visible durante el viaje. Se guarda una copia local cada segundo; al volver a abrir se recupera en pausa, sin cobrar automáticamente el intervalo con la página cerrada.
 
 ## 💶 Cómo se calcula el importe
 
@@ -59,8 +59,9 @@ El cálculo suma:
 
 ```text
 Subtotal = importe inicial
-         + kilómetros medidos × precio por km
-         + minutos activos × precio por minuto
+         + kilómetros facturables × precio por km
+         + minutos de viaje × precio por minuto
+         + minutos en espera manual × precio de espera
          + suplementos
 
 Total = máximo entre el subtotal y el precio mínimo
@@ -69,8 +70,8 @@ Total = máximo entre el subtotal y el precio mínimo
 Cada concepto monetario se redondea a céntimos antes de sumar. El ajuste al mínimo aparece como una línea separada.
 
 - **Mínimo de 0 €:** no se aplica un suelo de precio.
-- **Tiempo activado:** se cobra durante todo el tiempo activo, no solo durante las esperas.
-- **Tiempo desactivado:** los minutos se muestran, pero no añaden importe.
+- **Tiempo activado:** se cobra durante el viaje. En espera manual se sustituye por la tarifa de espera, sin sumar ambas tarifas.
+- **Tiempo desactivado:** el tiempo ordinario no añade importe. La espera manual sí utiliza su propia tarifa; configúrala a 0 para que sea gratuita.
 - **Suplementos:** cantidad fija por trayecto.
 - **Durante el viaje:** la tarifa queda fijada y no se puede editar.
 - **En pausa:** no se acumulan tiempo ni distancia.
@@ -87,12 +88,12 @@ Los valores iniciales de la aplicación son ejemplos configurables, no tarifas o
 - Borrar los datos del sitio elimina los viajes. La navegación privada puede no conservarlos.
 - Descarga los recibos que quieras guardar fuera del navegador.
 - Cada recibo conserva fecha, duración, distancia, tarifa, desglose y total del viaje.
-- El mapa del recorrido se muestra durante la sesión; el trazado no se guarda en el historial.
+- El mapa del recorrido se muestra durante la sesión; el trazado no se guarda en el historial ni se recupera tras recargar. Sí se conservan los totales medidos, estimados y ajustados.
 - El recibo es un **resumen orientativo**, no una factura ni un justificante de pago.
 
 Si no se puede guardar, el trayecto permanece pendiente para reintentarlo. **No cierres la pestaña mientras haya un guardado pendiente.**
 
-El mapa sí requiere servicios externos: Leaflet se carga desde unpkg.com y las teselas desde OpenStreetMap. Estos proveedores reciben las solicitudes de recursos; las teselas solicitadas corresponden al área visualizada. No es una aplicación totalmente offline.
+El mapa sí requiere servicios externos: Leaflet se carga desde unpkg.com y las teselas desde OpenStreetMap. Estos proveedores reciben las solicitudes de recursos; las teselas solicitadas corresponden al área visualizada. La interfaz, el cálculo, el historial y los recibos pueden abrirse sin internet tras una primera visita con conexión y cuando aparezca «Aplicación disponible sin internet». El mapa y sus recursos externos pueden no estar disponibles. No se descargan mapas offline. La caché puede ser eliminada por el navegador; sin primera visita no hay apertura offline.
 
 ## 📍 GPS y compatibilidad
 
@@ -105,7 +106,25 @@ El mapa sí requiere servicios externos: Leaflet se carga desde unpkg.com y las 
 
 VoltFare usa la ubicación que proporciona el navegador; **no se conecta a la API de Tesla ni al odómetro del vehículo**. La distancia se aproxima a partir de posiciones sucesivas, sin ajuste a la red de carreteras.
 
-Si se pierde el GPS, el tiempo activo puede seguir contando, pero no se inventan kilómetros. Cuando se detectan problemas de señal, el recibo indica que la medición puede ser incompleta.
+### Sin internet y sin GPS son situaciones distintas
+
+| Situación | Comportamiento |
+| --- | --- |
+| Sin internet, con posición válida | El cálculo y el guardado local continúan. El mapa puede dejar de cargar. |
+| Posición ausente o imprecisa | Continúa el tiempo según tarifa. La distancia queda pendiente. No se activa la espera automáticamente. |
+| Corte breve con posiciones fiables | Se puede añadir una aproximación en línea recta, identificada como distancia estimada. |
+| Corte largo, salto imposible o datos insuficientes | No se reconstruye el recorrido. Revisa el total y, si procede, ajústalo con el cuentakilómetros. |
+| Recarga o cierre de la página | Se ofrece el viaje guardado en pausa. No se incluyen automáticamente tiempo ni distancia del intervalo cerrado. |
+
+**Criterios de recuperación:** una interrupción detectada o más de 15 segundos entre posiciones se considera un corte. Solo se estima si entre la última posición válida y la nueva pasan como máximo 60 segundos, ambas precisiones son de 25 m o mejores, la distancia es de hasta 2 km y la velocidad implícita no supera 180 km/h. Los pequeños movimientos dentro del umbral de ruido no añaden kilómetros. Las posiciones ordinarias con precisión peor de 50 m o antigüedad superior a 15 segundos se descartan.
+
+Estos umbrales son filtros prácticos, no una garantía de exactitud. Una línea recta puede omitir curvas y desvíos; una falsa posición coherente también puede pasar los filtros. No hay acceso al cuentakilómetros del coche, reconstrucción por carretera ni extrapolación indefinida de velocidad. Las estimaciones se incluyen una sola vez en la distancia y quedan desglosadas en el recibo. El mapa interrumpe la línea en los cortes para no presentarlos como trazado medido.
+
+**Ajuste manual:** pausa el viaje y pulsa **Ajustar kilómetros**. Introduce la distancia total, por ejemplo la diferencia entre lecturas del cuentakilómetros, y un motivo. Este valor sustituye el total actual; no se añade a él. Si reanudas, se suman los kilómetros posteriores. El recibo conserva el último ajuste, su motivo, el total anterior y los acumulados GPS y estimados.
+
+**Espera manual:** pulsa **Iniciar espera** cuando corresponda. Durante ese modo se detiene la acumulación de distancia y se aplica únicamente la tarifa de espera por minuto. Pulsa **Terminar espera** antes de circular. **Pausar** detiene tanto tiempo como distancia y termina la espera. Perder GPS nunca activa este modo.
+
+**Recuperación local:** el viaje activo se guarda cada segundo y al pausar o ajustar. Puede perderse hasta el último intervalo no guardado si el navegador se cierra abruptamente. Al recuperar, revisa los kilómetros antes de reanudar o finalizar. Si falla el almacenamiento se avisa; no cierres la página hasta resolverlo. Usa una sola pestaña para el viaje activo: la recuperación no coordina varias pestañas o dispositivos.
 
 ## 🛠️ Ejecutar y desarrollar
 
@@ -124,7 +143,8 @@ Abre [localhost:8000](http://localhost:8000). El GPS necesita un contexto seguro
 | Archivo | Contenido |
 | --- | --- |
 | [index.html](index.html) | Interfaz, estilos y carga del mapa. |
-| [app.js](app.js) | GPS, cálculo, almacenamiento local y recibos. |
+| [app.js](app.js) | GPS, estimaciones, espera, recuperación local y recibos. |
+| [sw.js](sw.js) | Caché de la interfaz para apertura sin internet. |
 | [test.mjs](test.mjs) | Comprobaciones de lógica con navegador y almacenamiento simulados. |
 | [.nojekyll](.nojekyll) | Publicación de archivos estáticos sin procesarlos con Jekyll. |
 
@@ -136,7 +156,7 @@ Con Node.js moderno:
 node test.mjs
 ```
 
-Las pruebas cubren mínimo, guardado, recuperación tras recarga simulada, reintentos, duplicados, historial corrupto, escape de texto en recibos y rutas relativas. No sustituyen pruebas visuales ni una prueba de GPS real en el Tesla.
+Las pruebas cubren cálculo y mínimos, espera sin doble cobro, cortes GPS, posiciones inválidas, ajuste manual, recuperación del viaje, reintentos, duplicados y escape de recibos. No sustituyen pruebas visuales ni una prueba de GPS real en el Tesla.
 
 ## 🤝 Ideas, errores y mejoras
 
@@ -149,6 +169,9 @@ Si reportas un fallo, incluye el dispositivo, navegador, pasos para reproducirlo
 **VoltFare is a browser-based GPS fare estimator for VTC and private-hire trips, with a Tesla-oriented dashboard layout.** It provides a live map, configurable distance and time rates, a minimum fare, local trip history and downloadable trip receipts.
 
 - No account, application backend or build step required.
+- Offline app shell after a successful first online visit; maps still require internet.
+- Short GPS gaps can add explicitly labelled straight-line estimates; longer gaps need review.
+- Manual distance correction, separate waiting rates and paused trip recovery after reload.
 - Trip records stay in the current browser and are not synced across devices.
 - Receipts download as HTML; print-to-PDF depends on browser support.
 - GPS access in the actual Tesla browser has not yet been validated.
@@ -167,3 +190,4 @@ Looking for a **Tesla fare calculator**, **GPS trip cost calculator** or **brows
 Creado por [Sergi Garcia · sgarcia87](https://github.com/sgarcia87)
 
 </div>
+
