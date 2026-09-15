@@ -4,7 +4,7 @@ let tariff={...defaults};
 try{Object.assign(tariff,JSON.parse(localStorage.getItem('voltFareTariff')||'{}'))}catch{}
 for(const k of ['base','perKm','perMin','waitRate','extra','minimum'])if(!Number.isFinite(tariff[k])||tariff[k]<0||tariff[k]>10000)tariff[k]=defaults[k];
 let state='idle', trip=null, elapsed=0, distanceKm=0, lastPos=null, watchId=null, timer=null, speed=null, generation=0, goodAt=0, saving=false, pending=null;
-let map=null, marker=null, route=null, segments=[], selected=null, historyOffset=0;
+let map=null, marker=null, route=null, segments=[], estimatedSegments=[], estimatedRoute=null, followPosition=true, selected=null, historyOffset=0;
 function notify(msg){$('#toast').textContent=msg;$('#toast').classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('#toast').classList.remove('show'),6000)}
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function calc(km,ms,r,waitMs=0){const c=n=>Math.round(n*100),base=c(r.base),distance=c(km*r.perKm),time=c((r.countTime?Math.max(0,ms-waitMs)/60000*r.perMin:0)+waitMs/60000*(r.waitRate??0)),extra=c(r.extra),sub=base+distance+time+extra,adjustment=Math.max(0,c(r.minimum)-sub);return {base,distance,time,extra,adjustment,total:sub+adjustment}}
@@ -15,12 +15,21 @@ function render(){
   $('#speed').innerHTML=(speed===null?'—':Math.round(speed))+' <small>km/h</small>';
   for(const [id,key] of [['baseLine','base'],['kmLine','distance'],['timeLine','time'],['extraLine','extra'],['minLine','adjustment'],['totalLine','total']])$('#'+id).textContent=money(t[key]/100);
   $('#rateLabel').textContent=fmt(r.perKm)+' €/km · '+(r.countTime?fmt(r.perMin)+' €/min':'Tiempo sin cargo')+' · Mínimo '+money(r.minimum);
-  $('#mainBtn').textContent=state==='idle'?'Iniciar trayecto':state==='running'?'Pausar':'Reanudar';
+  $('#mainBtn').textContent=state==='idle'?'Empezar viaje':state==='running'?'Pausar sin cobrar':'Continuar viaje';
   $('#mainBtn').disabled=saving||!!pending;$('#finishBtn').disabled=!trip||saving;
-  $('#finishBtn').textContent=saving?'Guardando…':pending?'Reintentar guardado':'Finalizar';
+  $('#finishBtn').textContent=saving?'Guardando…':pending?'Reintentar guardado':'Terminar y guardar';
   $('#settingsBtn').disabled=!!trip;
-  $('#waitBtn').disabled=state!=='running'||!!pending;$('#waitBtn').textContent=waiting?'Terminar espera':'Iniciar espera';
+  $('#waitBtn').disabled=state!=='running'||!!pending;$('#waitBtn').textContent=waiting?'Volver al viaje':'Cobrar espera';
   $('#adjustBtn').disabled=!trip||state!=='paused'||!!pending;
+  $('#mainHelp').textContent=state==='idle'?'Empieza a sumar kilómetros e importe.':state==='running'?'Detiene el tiempo y los kilómetros. Podrás continuar después.':'Vuelve a sumar tiempo y kilómetros desde ahora.';
+  $('#finishHelp').textContent=pending?'Vuelve a intentar guardar este viaje sin duplicarlo.':'Finaliza el viaje, lo guarda y abre su recibo.';
+  $('#waitControl').hidden=state!=='running';$('#extraControls').hidden=!trip;
+  $('#waitHelp').textContent=waiting?'Deja de cobrar espera y vuelve a medir el recorrido.':'Cobra '+money(r.waitRate||0)+'/min de espera. No suma kilómetros ni la tarifa normal por minuto.';
+  $('#settingsHelp').textContent=trip?'Los precios quedan fijos durante este viaje.':'Elige lo que cobrarás antes de empezar.';
+  $('#adjustHelp').textContent=state==='paused'?'Introduce los kilómetros TOTALES del viaje. Sustituyen la distancia actual.':'Pulsa «Pausar sin cobrar» para poder corregir la distancia.';
+  $('#journeyHelp').textContent=pending?'El viaje ha terminado, pero falta guardarlo. Pulsa «Reintentar guardado».':state==='idle'?'Revisa los precios y pulsa «Empezar viaje» al salir.':state==='paused'?'En pausa: no se suman tiempo ni kilómetros. Puedes continuar o terminar.':waiting?'En espera: se cobra '+money(r.waitRate||0)+' por minuto. Pulsa «Volver al viaje» antes de circular.':'Viaje en marcha. Al llegar, pulsa «Terminar y guardar».';
+  $('#routeBtn').disabled=!map||!segments.some(s=>s.length);
+
   $('#qualityInfo').textContent=trip?'GPS: '+fmt(trip.measuredKm||0)+' km · Estimados: '+fmt(trip.estimatedKm||0)+' km'+(trip.manual?' · Total ajustado manualmente':'')+(trip.gpsIncomplete?' · Revisar medición':''):'';
   $('#connectionInfo').textContent=(navigator.onLine===false?'Sin internet':'Conexión disponible')+' · '+offlineStatus;
   $('#dot').classList.toggle('live',state==='running'&&Date.now()-goodAt<15000);
@@ -31,15 +40,17 @@ try{
   map=L.map('map').setView([41.808,2.744],10);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).on('tileerror',()=>{$('#gpsInfo').textContent='Mapa sin conexión. El cálculo GPS sigue disponible.'}).addTo(map);
   route=L.polyline([],{color:'#0ba77d',weight:5}).addTo(map);
+  estimatedRoute=L.polyline([],{color:'#e9a43b',weight:4,dashArray:'8 8'}).addTo(map);
+  map.on('dragstart',()=>{followPosition=false});
 }catch{$('#map').textContent='No se pudo cargar el mapa. Comprueba tu conexión; el estimador sigue disponible.'}
-function showPosition(c){if(!map)return;const p=[c.latitude,c.longitude];if(!marker)marker=L.circleMarker(p,{radius:8,color:'#fff',weight:3,fillColor:'#14896a',fillOpacity:1}).addTo(map);else marker.setLatLng(p);if(!map.getBounds().contains(p)||!goodAt)map.setView(p,15)}
+function showPosition(c){if(!map)return;const p=[c.latitude,c.longitude];if(!marker)marker=L.circleMarker(p,{radius:8,color:'#fff',weight:3,fillColor:'#14896a',fillOpacity:1}).addTo(map);else marker.setLatLng(p);if(followPosition&&(!map.getBounds().contains(p)||!goodAt))map.setView(p,15)}
 function haversine(a,b){const rad=x=>x*Math.PI/180,lat=rad(b.latitude-a.latitude),lon=rad(b.longitude-a.longitude),h=Math.sin(lat/2)**2+Math.cos(rad(a.latitude))*Math.cos(rad(b.latitude))*Math.sin(lon/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(h)))}
 let lastFix=null,gap=false,waiting=false,lastTick=0;
 let offlineStatus='Preparando uso sin conexión';
 const ACTIVE_KEY='voltfare.active.v2';
 function checkpoint(){
   if(!trip)return;
-  try{localStorage.setItem(ACTIVE_KEY,JSON.stringify({trip,elapsed,distanceKm,pending,savedAt:Date.now()}))}
+  try{localStorage.setItem(ACTIVE_KEY,JSON.stringify({trip,elapsed,distanceKm,pending,segments,estimatedSegments,savedAt:Date.now()}))}
   catch{offlineStatus='No se puede guardar el viaje en curso';notify('No se puede guardar el viaje en curso. No cierres esta pestaña.')}
 }
 function tick(){
@@ -63,13 +74,14 @@ function acceptPosition(p){
       trip.gpsIncomplete=true;
       if(outage<=60&&d<=2&&c.accuracy<=25&&lastPos.accuracy<=25&&d>=threshold){
         distanceKm+=d;trip.estimatedKm+=d;
+        estimatedSegments.push([[lastPos.latitude,lastPos.longitude],[n.latitude,n.longitude]]);
       }
-      segments.push([]);lastPos=n;
+      segments.push([[n.latitude,n.longitude]]);lastPos=n;
     }else if(d>=threshold){distanceKm+=d;trip.measuredKm+=d;lastPos=n;segments[segments.length-1].push([n.latitude,n.longitude])}
   }
-  if(!lastPos||waiting){lastPos=n;if(!segments.length)segments.push([]);segments[segments.length-1].push([n.latitude,n.longitude])}
+  if(!lastPos||waiting){lastPos=n;if(!segments.length)segments.push([]);if(!waiting)segments[segments.length-1].push([n.latitude,n.longitude])}
   lastFix=n;gap=false;showPosition(c);goodAt=now;speed=Number.isFinite(c.speed)?Math.max(0,c.speed*3.6):null;
-  route?.setLatLngs(segments);
+  route?.setLatLngs(segments);estimatedRoute?.setLatLngs(estimatedSegments);
   $('#gpsInfo').textContent='GPS ±'+Math.round(c.accuracy)+' m'+(trip.gpsIncomplete?' · Revisa los kilómetros antes de finalizar':'');
   render();
 }
@@ -84,7 +96,7 @@ function begin(){
   if(pending||saving)return;
   if(!trip){
     if(!confirm('El tiempo comienza al iniciar. Si no hay GPS, no se medirán kilómetros hasta recibir señal. Podrás ajustarlos al finalizar. ¿Iniciar?'))return;
-    trip={id:crypto.randomUUID(),started:new Date().toISOString(),tariff:{...tariff},gpsIncomplete:false,measuredKm:0,estimatedKm:0,waitMs:0};elapsed=0;distanceKm=0;segments=[[]];route?.setLatLngs([])
+    trip={id:crypto.randomUUID(),started:new Date().toISOString(),tariff:{...tariff},gpsIncomplete:false,measuredKm:0,estimatedKm:0,waitMs:0};elapsed=0;distanceKm=0;segments=[[]];estimatedSegments=[];followPosition=true;route?.setLatLngs([]);estimatedRoute?.setLatLngs([])
   }else segments.push([]);
   state='running';waiting=false;lastTick=Date.now();goodAt=0;startGps();
   timer=setInterval(()=>{tick();if(Date.now()-goodAt>15000)loseGps('Esperando señal GPS. El tiempo continúa según tarifa.');checkpoint();render()},1000);checkpoint();render();
@@ -99,7 +111,11 @@ function recover(){
     if(!['measuredKm','estimatedKm','waitMs'].every(k=>Number.isFinite(d.trip[k])&&d.trip[k]>=0)||d.trip.waitMs>d.elapsed||!['base','perKm','perMin','waitRate','extra','minimum'].every(k=>Number.isFinite(d.trip.tariff[k])&&d.trip.tariff[k]>=0))throw Error();
     if(readTrips().some(t=>t.id===d.trip.id)){localStorage.removeItem(ACTIVE_KEY);return}
     trip=d.trip;elapsed=d.elapsed;distanceKm=d.distanceKm;pending=d.pending||null;
-    trip.gpsIncomplete=true;trip.recovered=true;state='paused';segments=[[]];
+    trip.gpsIncomplete=true;trip.recovered=true;state='paused';
+    const validPath=a=>Array.isArray(a)&&a.every(s=>Array.isArray(s)&&s.every(p=>Array.isArray(p)&&p.length===2&&Number.isFinite(p[0])&&Math.abs(p[0])<=90&&Number.isFinite(p[1])&&Math.abs(p[1])<=180));
+    segments=validPath(d.segments)?d.segments:[[]];estimatedSegments=validPath(d.estimatedSegments)?d.estimatedSegments:[];
+    route?.setLatLngs(segments);estimatedRoute?.setLatLngs(estimatedSegments);
+    if(map&&segments.some(s=>s.length))map.fitBounds(route.getBounds(),{padding:[24,24],maxZoom:16});
     notify('Viaje recuperado en pausa. El tiempo y la distancia mientras la página estuvo cerrada no se han añadido.');render();
   }catch{notify('No se pudo recuperar el viaje guardado. Sus datos no se han sobrescrito.')}
 }
@@ -142,14 +158,15 @@ async function saveTrip(t){
 function localHistory(offset){const trips=readTrips().sort((a,b)=>b.ended.localeCompare(a.ended)||b.id.localeCompare(a.id));return {trips:trips.slice(offset,offset+30),more:trips.length>offset+30}}
 async function finish(){
   if(!trip||saving)return;
-  if(!pending){pause();if(!confirm(trip.gpsIncomplete?'Hay cortes o estimaciones GPS. Si necesitas corregir kilómetros, cancela y pulsa «Ajustar kilómetros». ¿Guardar el importe mostrado?':'¿Finalizar y guardar este trayecto?'))return;pending={...trip,ended:new Date().toISOString(),elapsed,km:distanceKm};checkpoint()}
+  if(!pending){pause();if(!confirm(trip.gpsIncomplete?'Hay cortes o estimaciones GPS. Si necesitas corregir kilómetros, cancela y pulsa «Corregir distancia total». ¿Guardar el importe mostrado?':'¿Finalizar y guardar este trayecto?'))return;pending={...trip,ended:new Date().toISOString(),elapsed,km:distanceKm};checkpoint()}
   saving=true;render();
   try{const saved=await saveTrip(pending);reset();showReceipt(saved);notify('Trayecto y recibo guardados en este navegador')}
   catch(e){notify(e.message);$('#gpsInfo').textContent='Guardado pendiente. Pulsa «Reintentar guardado»; no cierres esta página.'}
   finally{saving=false;render()}
 }
 $('#mainBtn').onclick=()=>state==='running'?pause():begin();$('#finishBtn').onclick=finish;
-$('#locateBtn').onclick=()=>{if(marker){map.setView(marker.getLatLng(),15);return}if(!navigator.geolocation){notify('Ubicación no disponible');return}navigator.geolocation.getCurrentPosition(p=>{showPosition(p.coords);map?.setView([p.coords.latitude,p.coords.longitude],15);$('#gpsInfo').textContent='Ubicación recibida · ±'+Math.round(p.coords.accuracy)+' m'},()=>notify('No se pudo obtener ubicación. Revisa los permisos.'),{enableHighAccuracy:true,timeout:12000})};
+$('#routeBtn').onclick=()=>{if(!map||!segments.some(s=>s.length))return;followPosition=false;map.fitBounds(route.getBounds(),{padding:[24,24],maxZoom:16})};
+$('#locateBtn').onclick=()=>{followPosition=true;if(marker){map.setView(marker.getLatLng(),15);return}if(!navigator.geolocation){notify('Ubicación no disponible');return}navigator.geolocation.getCurrentPosition(p=>{showPosition(p.coords);map?.setView([p.coords.latitude,p.coords.longitude],15);$('#gpsInfo').textContent='Ubicación recibida · ±'+Math.round(p.coords.accuracy)+' m'},()=>notify('No se pudo obtener ubicación. Revisa los permisos.'),{enableHighAccuracy:true,timeout:12000})};
 $('#settingsBtn').onclick=()=>{for(const k of ['base','perKm','perMin','waitRate','extra','minimum','issuer','plate'])$('#'+k).value=tariff[k]??'';$('#countTime').checked=tariff.countTime;$('#settings').showModal()};
 for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$('#'+b.dataset.close).close();
 for(const k of ['base','perKm','perMin','waitRate','extra'])$('#'+k).max=10000;
@@ -176,3 +193,4 @@ $('#downloadBtn').onclick=()=>{if(!selected)return;const html='<!doctype html><h
 window.addEventListener('beforeunload',e=>{if(trip){e.preventDefault();e.returnValue=''}});
 render();
 recover();
+

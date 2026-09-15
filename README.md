@@ -45,13 +45,19 @@ Está diseñada con lectura grande, modo oscuro y disposición horizontal para l
 ## 🚀 Empieza en un minuto
 
 1. Abre **[VoltFare](https://sgarcia87.github.io/voltfare/)**.
-2. Con el vehículo detenido, pulsa **Tarifa ⚙** y configura tus importes. El nombre de empresa y la matrícula son opcionales.
-3. Pulsa **Localizarme** y concede el permiso de ubicación.
-4. Pulsa **Iniciar trayecto**. Mantén la pestaña visible.
-5. Al terminar, pulsa **Finalizar** y confirma el guardado. Se abrirá el recibo.
-6. Recupera los servicios anteriores desde **Historial y recibos**.
+2. Con el vehículo detenido, pulsa **Configurar precios** y configura tus importes. El nombre de empresa y la matrícula son opcionales.
+3. Pulsa **Centrar mi posición** y concede el permiso de ubicación.
+4. Pulsa **Empezar viaje**. Mantén la pestaña visible.
+5. Al terminar, pulsa **Terminar y guardar** y confirma el guardado. Se abrirá el recibo.
+6. Recupera los servicios anteriores desde **Ver viajes y recibos**.
 
 **Configura y manipula la aplicación con el vehículo detenido.** Mantén la pestaña visible durante el viaje. Se guarda una copia local cada segundo; al volver a abrir se recupera en pausa, sin cobrar automáticamente el intervalo con la página cerrada.
+
+### Controles fáciles de entender
+
+Cada botón tiene una explicación visible. Los controles principales son **Empezar viaje** y **Terminar y guardar**. Durante el viaje, el primero cambia a **Pausar sin cobrar** y después a **Continuar viaje**. **Cobrar espera** aparece cuando el viaje está activo; la corrección de distancia queda dentro de **Corregir los kilómetros**.
+
+El mapa va dibujando una línea verde con el recorrido medido. **Ver todo el recorrido** encuadra el viaje; **Centrar mi posición** vuelve a seguir tu ubicación. Al mover el mapa manualmente se detiene el seguimiento hasta pulsar ese botón. Se necesitan al menos dos posiciones válidas con movimiento suficiente para ver una línea. Los puntos imprecisos o saltos imposibles se descartan.
 
 ## 💶 Cómo se calcula el importe
 
@@ -88,7 +94,7 @@ Los valores iniciales de la aplicación son ejemplos configurables, no tarifas o
 - Borrar los datos del sitio elimina los viajes. La navegación privada puede no conservarlos.
 - Descarga los recibos que quieras guardar fuera del navegador.
 - Cada recibo conserva fecha, duración, distancia, tarifa, desglose y total del viaje.
-- El mapa del recorrido se muestra durante la sesión; el trazado no se guarda en el historial ni se recupera tras recargar. Sí se conservan los totales medidos, estimados y ajustados.
+- El mapa del recorrido se muestra durante la sesión; el trazado no se guarda en el historial, pero sí en la copia local del viaje activo para recuperarlo tras recargar. Sí se conservan los totales medidos, estimados y ajustados.
 - El recibo es un **resumen orientativo**, no una factura ni un justificante de pago.
 
 Si no se puede guardar, el trayecto permanece pendiente para reintentarlo. **No cierres la pestaña mientras haya un guardado pendiente.**
@@ -118,11 +124,11 @@ VoltFare usa la ubicación que proporciona el navegador; **no se conecta a la AP
 
 **Criterios de recuperación:** una interrupción detectada o más de 15 segundos entre posiciones se considera un corte. Solo se estima si entre la última posición válida y la nueva pasan como máximo 60 segundos, ambas precisiones son de 25 m o mejores, la distancia es de hasta 2 km y la velocidad implícita no supera 180 km/h. Los pequeños movimientos dentro del umbral de ruido no añaden kilómetros. Las posiciones ordinarias con precisión peor de 50 m o antigüedad superior a 15 segundos se descartan.
 
-Estos umbrales son filtros prácticos, no una garantía de exactitud. Una línea recta puede omitir curvas y desvíos; una falsa posición coherente también puede pasar los filtros. No hay acceso al cuentakilómetros del coche, reconstrucción por carretera ni extrapolación indefinida de velocidad. Las estimaciones se incluyen una sola vez en la distancia y quedan desglosadas en el recibo. El mapa interrumpe la línea en los cortes para no presentarlos como trazado medido.
+Estos umbrales son filtros prácticos, no una garantía de exactitud. Una línea recta puede omitir curvas y desvíos; una falsa posición coherente también puede pasar los filtros. No hay acceso al cuentakilómetros del coche, reconstrucción por carretera ni extrapolación indefinida de velocidad. Las estimaciones se incluyen una sola vez en la distancia y quedan desglosadas en el recibo. El mapa dibuja el recorrido GPS en verde y las aproximaciones de cortes breves en ámbar discontinuo. Los cortes sin estimación y las pausas dejan la línea interrumpida.
 
-**Ajuste manual:** pausa el viaje y pulsa **Ajustar kilómetros**. Introduce la distancia total, por ejemplo la diferencia entre lecturas del cuentakilómetros, y un motivo. Este valor sustituye el total actual; no se añade a él. Si reanudas, se suman los kilómetros posteriores. El recibo conserva el último ajuste, su motivo, el total anterior y los acumulados GPS y estimados.
+**Ajuste manual:** pausa el viaje y pulsa **Corregir distancia total**. Introduce la distancia total, por ejemplo la diferencia entre lecturas del cuentakilómetros, y un motivo. Este valor sustituye el total actual; no se añade a él. Si reanudas, se suman los kilómetros posteriores. El recibo conserva el último ajuste, su motivo, el total anterior y los acumulados GPS y estimados.
 
-**Espera manual:** pulsa **Iniciar espera** cuando corresponda. Durante ese modo se detiene la acumulación de distancia y se aplica únicamente la tarifa de espera por minuto. Pulsa **Terminar espera** antes de circular. **Pausar** detiene tanto tiempo como distancia y termina la espera. Perder GPS nunca activa este modo.
+**Espera manual:** pulsa **Cobrar espera** cuando corresponda. Durante ese modo se detiene la acumulación de distancia y se aplica únicamente la tarifa de espera por minuto. Pulsa **Volver al viaje** antes de circular. **Pausar sin cobrar** detiene tanto tiempo como distancia y termina la espera. Perder GPS nunca activa este modo.
 
 **Recuperación local:** el viaje activo se guarda cada segundo y al pausar o ajustar. Puede perderse hasta el último intervalo no guardado si el navegador se cierra abruptamente. Al recuperar, revisa los kilómetros antes de reanudar o finalizar. Si falla el almacenamiento se avisa; no cierres la página hasta resolverlo. Usa una sola pestaña para el viaje activo: la recuperación no coordina varias pestañas o dispositivos.
 
@@ -190,4 +196,5 @@ Looking for a **Tesla fare calculator**, **GPS trip cost calculator** or **brows
 Creado por [Sergi Garcia · sgarcia87](https://github.com/sgarcia87)
 
 </div>
+
 

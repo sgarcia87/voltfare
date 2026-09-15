@@ -26,15 +26,18 @@
     .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:#f4f7f9;color:#080b10;padding:12px 18px;border-radius:12px;font-weight:650;transition:.25s;pointer-events:none;z-index:5}.toast.show{opacity:1;transform:translate(-50%,0)}
     @media(max-width:850px){.app{padding:16px;gap:16px}main{grid-template-columns:1fr}.meter{min-height:490px}.side{min-height:320px}.price{font-size:clamp(4.7rem,24vw,8rem)}footer{flex-direction:column}.status-label{display:none}}
     @media(max-width:500px){.stats{gap:8px}.stat{padding:14px 10px}.stat strong{font-size:1.25rem}.actions{grid-template-columns:1fr}.finish{min-height:56px}.form{grid-template-columns:1fr}.wide,.save{grid-column:auto}}
+    .control{display:flex;flex-direction:column;gap:7px;min-width:0}.control small,.map-help{color:var(--muted);font-size:.8rem;line-height:1.45;font-weight:400}.control button{width:100%}.quick-guide{display:flex;flex-wrap:wrap;gap:12px 28px;background:var(--panel);border:1px solid var(--line);padding:16px 22px;border-radius:18px;color:var(--muted);font-size:.9rem}.quick-guide strong{color:var(--mint)}.journey-help{color:var(--mint);line-height:1.5;margin:22px 0 12px}.secondary-control{margin-top:20px}.simple-help{margin-top:22px;color:var(--muted);font-size:.85rem;line-height:1.5}.simple-help summary{cursor:pointer;color:var(--text);padding:10px 0}.simple-help p{margin:8px 0 14px}.map-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}.map-controls button{font-size:.8rem;padding:10px}.map-legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0 0;font-size:.75rem;color:var(--muted)}.line{display:inline-block;width:24px;border-top:4px solid #0ba77d;margin-right:6px;vertical-align:middle}.line.estimated{border-color:#e9a43b;border-top-style:dashed}header .control small{max-width:200px}header .status{flex-wrap:wrap}.app{grid-template-rows:auto auto 1fr auto}[hidden]{display:none!important}button:focus-visible,summary:focus-visible{outline:3px solid var(--cyan);outline-offset:4px}
+    @media(max-width:500px){.quick-guide{gap:8px;flex-direction:column}.map-controls{grid-template-columns:1fr}.status-label{display:inline}header{align-items:flex-start}}
   </style>
 </head>
 <body>
   <div class="app">
     <header>
       <div class="brand"><span class="bolt">ϟ</span><span>VoltFare</span></div>
-      <button class="gear" id="historyBtn">Historial y recibos</button>
-      <div class="status"><span id="dot" class="dot"></span><span id="statusText" class="status-label">Listo para iniciar</span><button class="gear" id="settingsBtn" aria-label="Configurar tarifa">Tarifa ⚙</button></div>
+      <div class="control"><button class="gear" id="historyBtn" aria-describedby="historyHelp">Ver viajes y recibos</button><small id="historyHelp">Consulta o descarga un viaje terminado.</small></div>
+      <div class="status"><span id="dot" class="dot"></span><span id="statusText" class="status-label">Listo para iniciar</span><div class="control"><button class="gear" id="settingsBtn" aria-describedby="settingsHelp">Configurar precios</button><small id="settingsHelp">Elige lo que cobrarás antes de empezar.</small></div></div>
     </header>
+    <section class="quick-guide" aria-label="Cómo empezar"><strong>Tu viaje, en 3 pasos</strong><span>1. Configura los precios</span><span>2. Empieza el viaje</span><span>3. Termina y guarda el recibo</span></section>
     <main>
       <section class="meter" aria-label="Estimador de trayecto">
         <div>
@@ -48,16 +51,22 @@
             <div class="stat"><span>Duración</span><strong id="duration">00:00</strong></div>
             <div class="stat"><span>Velocidad</span><strong id="speed">0 <small>km/h</small></strong></div>
           </div>
-          <div class="actions"><button id="waitBtn" class="gear" disabled>Iniciar espera</button><button id="adjustBtn" class="gear" disabled>Ajustar kilómetros</button></div><div class="actions">
-            <button id="mainBtn" class="primary">Iniciar trayecto</button>
-            <button id="finishBtn" class="finish" disabled>Finalizar</button>
+          <p id="journeyHelp" class="journey-help" role="status">Todo listo. Pulsa «Empezar viaje» al salir.</p>
+          <div class="actions">
+            <div class="control"><button id="mainBtn" class="primary" aria-describedby="mainHelp">Empezar viaje</button><small id="mainHelp">Empieza a sumar kilómetros e importe.</small></div>
+            <div class="control"><button id="finishBtn" class="finish" aria-describedby="finishHelp" disabled>Terminar y guardar</button><small id="finishHelp">Finaliza el viaje y abre su recibo.</small></div>
           </div>
+          <div id="waitControl" class="control secondary-control" hidden><button id="waitBtn" class="gear" aria-describedby="waitHelp" disabled>Cobrar espera</button><small id="waitHelp">Para cuando estás esperando al cliente.</small></div>
+          <details id="extraControls" class="simple-help"><summary>Corregir los kilómetros</summary><p>Úsalo si faltan kilómetros por un corte de GPS. Pausa primero el viaje.</p><div class="control"><button id="adjustBtn" class="gear" aria-describedby="adjustHelp" disabled>Corregir distancia total</button><small id="adjustHelp">Introduce el total del cuentakilómetros. Sustituye la distancia actual.</small></div></details>
+
         </div>
       </section>
       <aside class="side">
-        <div id="map" aria-label="Mapa del recorrido"></div>
+        <h2>Tu recorrido en directo</h2><div id="map" aria-label="Mapa del recorrido"></div>
         <p id="gpsInfo" role="status">El mapa se centrará al recibir ubicación.</p>
-        <button class="gear" id="locateBtn">Localizarme</button>
+        <div class="map-legend"><span><i class="line measured"></i>Recorrido GPS</span><span><i class="line estimated"></i>Tramo estimado</span></div>
+        <p class="map-help">La línea crece al avanzar. El punto indica tu posición. En una pausa no se dibuja recorrido.</p>
+        <div class="map-controls"><div class="control"><button class="gear" id="locateBtn" aria-describedby="locateHelp">Centrar mi posición</button><small id="locateHelp">Vuelve a mostrar dónde estás.</small></div><div class="control"><button class="gear" id="routeBtn" aria-describedby="routeHelp" disabled>Ver todo el recorrido</button><small id="routeHelp">Aleja el mapa para ver el viaje completo.</small></div></div>
         <p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
         <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
         <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
@@ -73,28 +82,28 @@
 
   <dialog id="settings">
     <form method="dialog" class="modal" id="settingsForm">
-      <div class="modal-head"><h2>Configurar tarifa</h2><button class="close" type="button" data-close="settings" aria-label="Cerrar">×</button></div>
+      <div class="modal-head"><h2>Configurar precios</h2><button class="close" type="button" data-close="settings" aria-label="Cerrar">×</button></div>
       <div class="form">
-        <div class="field"><label for="base">Importe inicial (€)</label><input id="base" type="number" min="0" step="0.01" value="3.50"></div>
+        <div class="field"><label for="base">Precio al empezar (€)</label><input id="base" type="number" min="0" step="0.01" value="3.50"></div>
         <div class="field"><label for="perKm">Precio por km (€)</label><input id="perKm" type="number" min="0" step="0.01" value="1.35"></div>
         <div class="field"><label for="perMin">Precio por minuto (€)</label><input id="perMin" type="number" min="0" step="0.01" value="0.28"></div>
-        <div class="field"><label for="waitRate">Espera manual (€/min)</label><input id="waitRate" type="number" min="0" max="10000" step="0.01" value="0.28" required></div><div class="field"><label for="extra">Suplementos (€)</label><input id="extra" type="number" min="0" step="0.01" value="0"></div>
+        <div class="field"><label for="waitRate">Precio por minuto de espera (€)</label><input id="waitRate" type="number" min="0" max="10000" step="0.01" value="0.28" required><small>Solo se aplica al pulsar «Cobrar espera». Sustituye el precio por minuto de viaje.</small></div><div class="field"><label for="extra">Suplementos (€)</label><input id="extra" type="number" min="0" step="0.01" value="0"></div>
         <div class="field wide"><label for="minimum">Precio mínimo total (€)</label><input id="minimum" type="number" min="0" max="10000" step="0.01" value="0"><small>0 desactiva el mínimo. Se aplica al total, incluidos suplementos.</small></div>
         <div class="field"><label for="issuer">Nombre / empresa (opcional)</label><input id="issuer" maxlength="120"></div>
         <div class="field"><label for="plate">Matrícula (opcional)</label><input id="plate" maxlength="30"></div>
-        <label class="inline wide"><input id="countTime" type="checkbox" checked> Contabilizar tiempo durante todo el trayecto</label>
-        <button class="save" value="default">Guardar tarifa</button>
+        <label class="inline wide"><input id="countTime" type="checkbox" checked> Cobrar también los minutos de viaje</label>
+        <button class="save" value="default">Guardar precios</button>
       </div>
     </form>
   </dialog>
-  <dialog id="adjustment"><form class="modal" id="adjustForm"><div class="modal-head"><h2>Ajustar kilómetros</h2><button type="button" class="close" data-close="adjustment" aria-label="Cerrar">×</button></div><p>Introduce la distancia TOTAL del viaje, por ejemplo la diferencia del cuentakilómetros. Sustituye el total actual; no se suma. El recibo conservará el motivo.</p><div class="form"><div class="field"><label for="manualKm">Total del viaje (km)</label><input id="manualKm" type="number" min="0" max="100000" step="0.001" required></div><div class="field wide"><label for="manualReason">Motivo / lectura del cuentakilómetros</label><input id="manualReason" maxlength="200" required></div><button class="save">Aplicar ajuste</button></div></form></dialog>
+  <dialog id="adjustment"><form class="modal" id="adjustForm"><div class="modal-head"><h2>Corregir distancia total</h2><button type="button" class="close" data-close="adjustment" aria-label="Cerrar">×</button></div><p>Introduce la distancia TOTAL del viaje, por ejemplo la diferencia del cuentakilómetros. Sustituye el total actual; no se suma. El recibo conservará el motivo.</p><div class="form"><div class="field"><label for="manualKm">Total del viaje (km)</label><input id="manualKm" type="number" min="0" max="100000" step="0.001" required></div><div class="field wide"><label for="manualReason">Motivo / lectura del cuentakilómetros</label><input id="manualReason" maxlength="200" required></div><button class="save">Aplicar ajuste</button></div></form></dialog>
   <div class="toast" id="toast" role="status"></div>
   <dialog id="history"><div class="modal"><div class="modal-head"><h2>Historial de trayectos</h2><button class="close" data-close="history" aria-label="Cerrar">×</button></div><p>Guardado solo en este navegador y dispositivo. Si borras sus datos, perderás el historial. Descarga los recibos que quieras conservar.</p><div id="historyList"></div><button class="gear" id="moreBtn" hidden>Cargar más</button></div></dialog>
-  <dialog id="receipt"><div class="modal"><div class="modal-head no-print"><h2>Recibo de trayecto</h2><button class="close" data-close="receipt" aria-label="Cerrar">×</button></div><article id="receiptBody"></article><div class="receipt-actions no-print"><button class="primary" id="printBtn">Imprimir / guardar PDF</button><button class="gear" id="downloadBtn">Descargar recibo</button></div><p class="no-print">En el diálogo de impresión elige «Guardar como PDF», si tu navegador lo permite.</p></div></dialog>
+  <dialog id="receipt"><div class="modal"><div class="modal-head no-print"><h2>Recibo de trayecto</h2><button class="close" data-close="receipt" aria-label="Cerrar">×</button></div><article id="receiptBody"></article><div class="receipt-actions no-print"><button class="primary" id="printBtn">Imprimir / guardar PDF</button><button class="gear" id="downloadBtn">Descargar recibo HTML</button></div><p class="no-print">«Imprimir / guardar PDF» abre la impresión del navegador. «Descargar recibo HTML» guarda un archivo que puedes abrir después sin internet.</p></div></dialog>
   <style>
-    #map{height:240px;min-height:240px;border-radius:16px;background:#202b35;z-index:0}
+    #map{height:320px;min-height:320px;border-radius:16px;background:#202b35;z-index:0}
     #connectionInfo,#qualityInfo{font-size:13px;color:var(--mint);line-height:1.5}.actions{margin-top:12px}#gpsInfo{font-size:14px;color:var(--muted);line-height:1.4;margin:10px 0}
-    #locateBtn{margin-bottom:22px} .side h2{margin-top:4px;margin-bottom:8px}.side .row{padding:10px 0}
+    #locateBtn{margin-bottom:0} .side h2{margin-top:4px;margin-bottom:8px}.side .row{padding:10px 0}
     dialog{max-height:90vh;overflow:auto}#history{width:min(800px,calc(100vw - 32px))}#receipt{width:min(650px,calc(100vw - 32px))}
     .trip-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0;border-bottom:1px solid var(--line)}
     .trip-row small{display:block;color:var(--muted);margin-top:6px} .receipt-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:25px}.receipt-actions .primary{padding:12px 20px;min-height:50px}
@@ -106,4 +115,5 @@
   <script src="./app.js"></script>
 </body>
 </html>
+
 

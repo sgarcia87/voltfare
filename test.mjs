@@ -67,3 +67,22 @@ for(const path of ['/voltfare/','/voltfare/index.html','/voltfare/app.js']){
 }
 let intercepted=false;listeners.fetch({request:{method:'GET',url:'https://tile.openstreetmap.org/0/0/0.png'},respondWith:()=>intercepted=true});assert.equal(intercepted,false);
 console.log('OK: offline shell cache at /voltfare/; external map tiles not cached.');
+
+// The displayed paths update as GPS arrives, retain their first point after gaps,
+// and survive an active-trip reload without joining paused portions.
+run('begin();route={setLatLngs(points){this.points=JSON.parse(JSON.stringify(points))}};estimatedRoute={setLatLngs(points){this.points=JSON.parse(JSON.stringify(points))}}');
+fix(1,0);fix(10,.001);fix(10,.002);
+assert.equal(run('route.points[0].length'),3);
+run("loseGps('Tunnel')");fix(30,.006);
+assert.equal(run('estimatedRoute.points.length'),1);
+assert.equal(run('route.points.at(-1).length'),1);
+fix(10,.007);assert.equal(run('route.points.at(-1).length'),2);
+const pointsBefore=run('segments.flat().length');
+run("$('#waitBtn').onclick()");fix(10,.008);assert.equal(run('segments.flat().length'),pointsBefore);
+run('pause();checkpoint()');
+const measuredPath=run('JSON.stringify(segments)'),estimatedPath=run('JSON.stringify(estimatedSegments)');
+ctx=environment();assert.equal(run('JSON.stringify(segments)'),measuredPath);assert.equal(run('JSON.stringify(estimatedSegments)'),estimatedPath);
+run('begin()');fix(10,.02);assert.equal(run('segments.at(-1).length'),1);
+assert.equal(run("$('#mainBtn').textContent"),'Pausar sin cobrar');
+run('pause()');assert.equal(run("$('#mainBtn').textContent"),'Continuar viaje');
+console.log('OK: live route updates, gap styles, waiting exclusion, restored paths and state-dependent control descriptions.');

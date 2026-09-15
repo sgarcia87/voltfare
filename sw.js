@@ -1,4 +1,4 @@
-const CACHE='voltfare-shell-v2';
+const CACHE='voltfare-shell-v3';
 const SHELL=['./','./index.html','./app.js'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
@@ -11,3 +11,4 @@ self.addEventListener('fetch',event=>{
   if(!SHELL.some(path=>new URL(path,self.registration.scope).pathname===url.pathname))return;
   event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(url.pathname))||fetch(event.request)));
 });
+
