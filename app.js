@@ -158,12 +158,15 @@ async function saveTrip(t){
 function localHistory(offset){const trips=readTrips().sort((a,b)=>b.ended.localeCompare(a.ended)||b.id.localeCompare(a.id));return {trips:trips.slice(offset,offset+30),more:trips.length>offset+30}}
 async function finish(){
   if(!trip||saving)return;
-  if(!pending){pause();if(!confirm(trip.gpsIncomplete?'Hay cortes o estimaciones GPS. Si necesitas corregir kilómetros, cancela y pulsa «Corregir distancia total». ¿Guardar el importe mostrado?':'¿Finalizar y guardar este trayecto?'))return;pending={...trip,ended:new Date().toISOString(),elapsed,km:distanceKm};checkpoint()}
+  if(!pending){pause();if(!confirm(trip.gpsIncomplete?'Hay cortes o estimaciones GPS. Si necesitas corregir kilómetros, cancela y abre «Desglose y ajustes» para corregir la distancia. ¿Guardar el importe mostrado?':'¿Finalizar y guardar este trayecto?'))return;pending={...trip,ended:new Date().toISOString(),elapsed,km:distanceKm};checkpoint()}
   saving=true;render();
   try{const saved=await saveTrip(pending);reset();showReceipt(saved);notify('Trayecto y recibo guardados en este navegador')}
   catch(e){notify(e.message);$('#gpsInfo').textContent='Guardado pendiente. Pulsa «Reintentar guardado»; no cierres esta página.'}
   finally{saving=false;render()}
 }
+$('#helpBtn').onclick=()=>$('#help').showModal();
+$('#detailsBtn').onclick=()=>$('#details').showModal();
+if(typeof ResizeObserver!=='undefined'){new ResizeObserver(()=>map?.invalidateSize()).observe($('#map'))}
 $('#mainBtn').onclick=()=>state==='running'?pause():begin();$('#finishBtn').onclick=finish;
 $('#routeBtn').onclick=()=>{if(!map||!segments.some(s=>s.length))return;followPosition=false;map.fitBounds(route.getBounds(),{padding:[24,24],maxZoom:16})};
 $('#locateBtn').onclick=()=>{followPosition=true;if(marker){map.setView(marker.getLatLng(),15);return}if(!navigator.geolocation){notify('Ubicación no disponible');return}navigator.geolocation.getCurrentPosition(p=>{showPosition(p.coords);map?.setView([p.coords.latitude,p.coords.longitude],15);$('#gpsInfo').textContent='Ubicación recibida · ±'+Math.round(p.coords.accuracy)+' m'},()=>notify('No se pudo obtener ubicación. Revisa los permisos.'),{enableHighAccuracy:true,timeout:12000})};
@@ -193,4 +196,5 @@ $('#downloadBtn').onclick=()=>{if(!selected)return;const html='<!doctype html><h
 window.addEventListener('beforeunload',e=>{if(trip){e.preventDefault();e.returnValue=''}});
 render();
 recover();
+
 

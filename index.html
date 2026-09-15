@@ -36,8 +36,8 @@
       <div class="brand"><span class="bolt">ϟ</span><span>VoltFare</span></div>
       <div class="control"><button class="gear" id="historyBtn" aria-describedby="historyHelp">Ver viajes y recibos</button><small id="historyHelp">Consulta o descarga un viaje terminado.</small></div>
       <div class="status"><span id="dot" class="dot"></span><span id="statusText" class="status-label">Listo para iniciar</span><div class="control"><button class="gear" id="settingsBtn" aria-describedby="settingsHelp">Configurar precios</button><small id="settingsHelp">Elige lo que cobrarás antes de empezar.</small></div></div>
+      <button class="gear" id="helpBtn">Ayuda</button>
     </header>
-    <section class="quick-guide" aria-label="Cómo empezar"><strong>Tu viaje, en 3 pasos</strong><span>1. Configura los precios</span><span>2. Empieza el viaje</span><span>3. Termina y guarda el recibo</span></section>
     <main>
       <section class="meter" aria-label="Estimador de trayecto">
         <div>
@@ -56,8 +56,8 @@
             <div class="control"><button id="mainBtn" class="primary" aria-describedby="mainHelp">Empezar viaje</button><small id="mainHelp">Empieza a sumar kilómetros e importe.</small></div>
             <div class="control"><button id="finishBtn" class="finish" aria-describedby="finishHelp" disabled>Terminar y guardar</button><small id="finishHelp">Finaliza el viaje y abre su recibo.</small></div>
           </div>
-          <div id="waitControl" class="control secondary-control" hidden><button id="waitBtn" class="gear" aria-describedby="waitHelp" disabled>Cobrar espera</button><small id="waitHelp">Para cuando estás esperando al cliente.</small></div>
-          <details id="extraControls" class="simple-help"><summary>Corregir los kilómetros</summary><p>Úsalo si faltan kilómetros por un corte de GPS. Pausa primero el viaje.</p><div class="control"><button id="adjustBtn" class="gear" aria-describedby="adjustHelp" disabled>Corregir distancia total</button><small id="adjustHelp">Introduce el total del cuentakilómetros. Sustituye la distancia actual.</small></div></details>
+          <div class="secondary-bar"><button class="gear" id="detailsBtn">Desglose y ajustes</button><div id="waitControl" class="control secondary-control" hidden><button id="waitBtn" class="gear" aria-describedby="waitHelp" disabled>Cobrar espera</button><small id="waitHelp">Para cuando estás esperando al cliente.</small></div></div>
+
 
         </div>
       </section>
@@ -67,7 +67,12 @@
         <div class="map-legend"><span><i class="line measured"></i>Recorrido GPS</span><span><i class="line estimated"></i>Tramo estimado</span></div>
         <p class="map-help">La línea crece al avanzar. El punto indica tu posición. En una pausa no se dibuja recorrido.</p>
         <div class="map-controls"><div class="control"><button class="gear" id="locateBtn" aria-describedby="locateHelp">Centrar mi posición</button><small id="locateHelp">Vuelve a mostrar dónde estás.</small></div><div class="control"><button class="gear" id="routeBtn" aria-describedby="routeHelp" disabled>Ver todo el recorrido</button><small id="routeHelp">Aleja el mapa para ver el viaje completo.</small></div></div>
-        <p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
+      </aside>
+    </main>
+    <footer><span>Estimador para servicios VTC · No es un taxímetro homologado</span><span>Los importes son orientativos</span></footer>
+  </div>
+
+  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
         <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
         <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
         <div class="row"><span>Tiempo</span><strong id="timeLine">0,00 €</strong></div>
@@ -75,11 +80,9 @@
         <div class="row"><span>Ajuste al mínimo</span><strong id="minLine">0,00 €</strong></div>
         <div class="row total"><span>Total estimado</span><strong id="totalLine">0,00 €</strong></div>
         <p class="gps-note"><b>Medición GPS del navegador.</b><br>La precisión depende de la señal y del dispositivo. Mantén esta pestaña visible durante el recorrido.</p>
-      </aside>
-    </main>
-    <footer><span>Estimador para servicios VTC · No es un taxímetro homologado</span><span>Los importes son orientativos</span></footer>
-  </div>
-
+          <details id="extraControls" class="simple-help"><summary>Corregir los kilómetros</summary><p>Úsalo si faltan kilómetros por un corte de GPS. Pausa primero el viaje.</p><div class="control"><button id="adjustBtn" class="gear" aria-describedby="adjustHelp" disabled>Corregir distancia total</button><small id="adjustHelp">Introduce el total del cuentakilómetros. Sustituye la distancia actual.</small></div></details></div></dialog>
+  <dialog id="help"><div class="modal"><div class="modal-head"><h2>Cómo usar VoltFare</h2><button class="close" data-close="help" aria-label="Cerrar">×</button></div>    <section class="quick-guide" aria-label="Cómo empezar"><strong>Tu viaje, en 3 pasos</strong><span>1. Configura los precios</span><span>2. Empieza el viaje</span><span>3. Termina y guarda el recibo</span></section>
+<dl class="help-list"><dt>Configurar precios</dt><dd>Elige la tarifa antes de empezar. Queda fija durante el viaje.</dd><dt>Empezar / continuar viaje</dt><dd>Suma kilómetros y tiempo según tu tarifa.</dd><dt>Pausar sin cobrar</dt><dd>Detiene el tiempo y la distancia hasta que continúes.</dd><dt>Cobrar espera</dt><dd>Aplica solo el precio por minuto de espera. No suma kilómetros.</dd><dt>Terminar y guardar</dt><dd>Guarda el viaje y abre el recibo para descargarlo o imprimirlo.</dd><dt>Desglose y ajustes</dt><dd>Muestra los conceptos del precio y permite corregir la distancia si el viaje está pausado.</dd><dt>El mapa</dt><dd>La línea verde sigue el GPS; la línea ámbar discontinua indica un tramo estimado. «Centrar mi posición» sigue tu ubicación. «Ver todo el recorrido» muestra el viaje completo.</dd><dt>Ver viajes y recibos</dt><dd>Abre los viajes que has guardado en este navegador.</dd></dl></div></dialog>
   <dialog id="settings">
     <form method="dialog" class="modal" id="settingsForm">
       <div class="modal-head"><h2>Configurar precios</h2><button class="close" type="button" data-close="settings" aria-label="Cerrar">×</button></div>
@@ -111,9 +114,36 @@
     .field small{display:block;line-height:1.5;color:var(--muted);margin-top:8px}button:disabled{opacity:.45;cursor:not-allowed}header{flex-wrap:wrap}.price{font-size:clamp(3rem,11vw,9rem)}.meter{min-width:0}
     @media print{body{background:white!important;color:black!important}.app,#toast,#history,#settings,#adjustment,.no-print{display:none!important}dialog#receipt{position:static;display:block;border:0;background:white;color:black;max-width:none;width:100%;max-height:none;overflow:visible;box-shadow:none}dialog::backdrop{background:transparent}#receiptBody td{border-color:#ccc}.modal{padding:0}@page{margin:18mm}}
   </style>
+
+  <style>
+    /* The dashboard fits the viewport; longer explanations live in dialogs. */
+    html,body{min-height:0}body{height:100vh;height:100dvh}
+    .app{height:100vh;height:100dvh;min-height:0;max-width:1800px;padding:16px 22px;gap:12px;grid-template-rows:auto minmax(0,1fr) auto}
+    header{flex-wrap:nowrap;gap:12px}.brand{margin-right:auto}.status{gap:12px;flex-wrap:nowrap!important}.status-label{display:inline}
+    header .control small{display:none}header .gear{font-size:.85rem;min-height:42px;padding:9px 14px}
+    main{min-height:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+    .meter,.side{min-height:0;min-width:0;border-radius:22px;padding:22px}
+    .meter{justify-content:space-between;gap:12px}.meter>div{min-height:0}
+    .price{font-size:clamp(3.5rem,12vh,8rem);line-height:1.05;margin:12px 0;white-space:nowrap}.currency{font-size:.35em}
+    .eyebrow{font-size:.75rem}.estimate{font-size:.85rem;line-height:1.4}
+    .stats{gap:10px}.stat{padding:12px}.stat strong{font-size:1.5rem}.stat span{font-size:.75rem}
+    .journey-help{font-size:.85rem;line-height:1.4;margin:12px 0;min-height:2.8em}
+    .actions{grid-template-columns:1fr 1fr;gap:10px;margin-top:0}.primary,.finish{min-height:52px;font-size:1rem;padding:10px}
+    .actions .control small{font-size:.75rem;line-height:1.3}.control{gap:5px}
+    .secondary-bar{display:flex;align-items:flex-start;gap:12px;margin-top:12px}.secondary-bar>.gear,.secondary-bar>.control{flex:1}.secondary-control{margin:0}.secondary-control small{display:none}.secondary-bar .gear{min-height:44px;font-size:.85rem;padding:9px}
+    .side{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;gap:8px}.side h2{margin:0;font-size:.95rem}
+    #map{height:100%;min-height:0;border-radius:14px}#gpsInfo{margin:0;font-size:.8rem;line-height:1.35;min-height:2.7em}
+    .map-help{display:none}.map-legend{margin:0;font-size:.7rem}.map-controls{margin:0;gap:10px}.map-controls .control small{display:none}.map-controls .gear{min-height:42px}
+    footer{font-size:.65rem;line-height:1.3;flex-direction:row}.gps-note{padding-top:12px}
+    #details .row{padding:10px 0}#details h2{margin-top:16px}#details .modal-head h2{margin:0}.help-list{font-size:.9rem;line-height:1.5}.help-list dt{font-weight:700;margin-top:12px}.help-list dd{color:var(--muted);margin:3px 0 0}.quick-guide{margin-top:18px;gap:8px;flex-direction:column}
+    @media(max-height:720px) and (min-width:701px){.app{padding:10px 16px;gap:8px}.meter,.side{padding:16px}.price{font-size:clamp(3rem,11vh,5.5rem);margin:6px 0}.stats .stat{padding:9px}.journey-help{margin:8px 0}.actions .control small{display:none}.secondary-bar{margin-top:8px}.meter{gap:6px}.primary,.finish{min-height:46px}.stat strong{font-size:1.25rem}}
+    @media(max-width:700px){.app{padding:10px;gap:8px}header{display:grid;grid-template-columns:1fr auto auto;gap:6px}.brand{font-size:1rem}.bolt{width:28px;height:28px;font-size:1rem}header>.control{grid-column:2}header .status{grid-row:2;grid-column:1/-1;justify-content:space-between}header>#helpBtn{grid-row:1;grid-column:3}header .gear{font-size:.72rem;min-height:34px;padding:6px 9px}.status{font-size:.75rem}main{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:8px}.meter,.side{padding:12px;border-radius:16px}.meter{gap:8px}.price{font-size:2.8rem;margin:2px 0}.eyebrow{font-size:.6rem}.estimate{font-size:.7rem}.stats{gap:6px}.stat{padding:7px 9px}.stat span{font-size:.65rem}.stat strong{font-size:1.05rem}.journey-help{font-size:.72rem;min-height:0;margin:6px 0}.primary,.finish{min-height:42px;font-size:.82rem}.actions .control small{display:none}.secondary-bar{margin-top:6px;gap:8px}.secondary-bar .gear{min-height:34px;font-size:.75rem;padding:6px}.side{gap:5px}.side h2{font-size:.8rem}#gpsInfo{font-size:.65rem;min-height:0}.map-legend{font-size:.6rem}.map-controls .gear{font-size:.7rem;min-height:34px;padding:6px}.map-controls{grid-template-columns:1fr 1fr}footer{display:none}}
+    @media print{body,.app{height:auto}#details,#help{display:none!important}}
+  </style>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <script src="./app.js"></script>
 </body>
 </html>
+
 
 

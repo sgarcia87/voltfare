@@ -55,7 +55,7 @@ Está diseñada con lectura grande, modo oscuro y disposición horizontal para l
 
 ### Controles fáciles de entender
 
-Cada botón tiene una explicación visible. Los controles principales son **Empezar viaje** y **Terminar y guardar**. Durante el viaje, el primero cambia a **Pausar sin cobrar** y después a **Continuar viaje**. **Cobrar espera** aparece cuando el viaje está activo; la corrección de distancia queda dentro de **Corregir los kilómetros**.
+La pantalla principal se adapta a la altura disponible para mostrar importe, mapa y controles sin desplazamiento en los tamaños habituales de escritorio y móvil. **Ayuda** explica cada botón; **Desglose y ajustes** abre los conceptos del importe y las opciones de corrección. En pantallas muy pequeñas o con ampliación de texto puede ser necesario desplazarse. Los controles principales son **Empezar viaje** y **Terminar y guardar**. Durante el viaje, el primero cambia a **Pausar sin cobrar** y después a **Continuar viaje**. **Cobrar espera** aparece cuando el viaje está activo; la corrección de distancia queda en **Desglose y ajustes → Corregir los kilómetros**.
 
 El mapa va dibujando una línea verde con el recorrido medido. **Ver todo el recorrido** encuadra el viaje; **Centrar mi posición** vuelve a seguir tu ubicación. Al mover el mapa manualmente se detiene el seguimiento hasta pulsar ese botón. Se necesitan al menos dos posiciones válidas con movimiento suficiente para ver una línea. Los puntos imprecisos o saltos imposibles se descartan.
 
