@@ -15,7 +15,7 @@ Mapa en directo · Precio mínimo · Historial local · Recibos descargables
 ![Historial local](https://img.shields.io/badge/Historial-en_tu_navegador-66d9ff?style=flat-square)
 ![GitHub Pages](https://img.shields.io/badge/Hosting-GitHub_Pages-181717?style=flat-square&logo=github)
 
-[Abrir la aplicación](https://sgarcia87.github.io/voltfare/) · [English](#english) · [Reportar un problema](https://github.com/sgarcia87/voltfare/issues) · [Publicar tu copia](PUBLICAR.md)
+[Abrir la aplicación](https://sgarcia87.github.io/voltfare/) · [English](#english) · [Reportar un problema](https://github.com/sgarcia87/voltfare/issues)
 
 </div>
 
@@ -126,7 +126,6 @@ Abre [localhost:8000](http://localhost:8000). El GPS necesita un contexto seguro
 | [index.html](index.html) | Interfaz, estilos y carga del mapa. |
 | [app.js](app.js) | GPS, cálculo, almacenamiento local y recibos. |
 | [test.mjs](test.mjs) | Comprobaciones de lógica con navegador y almacenamiento simulados. |
-| [PUBLICAR.md](PUBLICAR.md) | Instrucciones de publicación y límites de esta edición. |
 | [.nojekyll](.nojekyll) | Publicación de archivos estáticos sin procesarlos con Jekyll. |
 
 ### Pruebas
@@ -138,10 +137,6 @@ node test.mjs
 ```
 
 Las pruebas cubren mínimo, guardado, recuperación tras recarga simulada, reintentos, duplicados, historial corrupto, escape de texto en recibos y rutas relativas. No sustituyen pruebas visuales ni una prueba de GPS real en el Tesla.
-
-### Publicar en GitHub Pages
-
-En **Settings → Pages**, selecciona **Deploy from a branch → main → / (root) → Save**. Consulta [la guía completa](PUBLICAR.md).
 
 ## 🤝 Ideas, errores y mejoras
 
