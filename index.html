@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080b10">
+  <meta name="description" content="Estimador de trayectos VTC por GPS, diseñado para pantallas Tesla.">
+  <title>VoltFare — Estimador VTC</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23080b10'/%3E%3Cpath d='M35 7 16 36h14l-2 21 20-31H34z' fill='%237cf7c4'/%3E%3C/svg%3E">
+  <style>
+    :root{color-scheme:dark;--bg:#080b10;--panel:#11161d;--panel2:#171e27;--line:#28313d;--text:#f4f7f9;--muted:#929ca8;--mint:#7cf7c4;--cyan:#66d9ff;--red:#ff6474;--shadow:0 24px 70px rgba(0,0,0,.38)}
+    *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif} button,input{font:inherit}
+    body{min-height:100vh;background:radial-gradient(circle at 12% 0%,rgba(102,217,255,.1),transparent 27rem),radial-gradient(circle at 90% 80%,rgba(124,247,196,.08),transparent 30rem)}
+    .app{min-height:100vh;padding:clamp(18px,3vw,38px);display:grid;grid-template-rows:auto 1fr auto;gap:24px;max-width:1500px;margin:auto}
+    header{display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:13px;font-weight:750;letter-spacing:-.02em;font-size:1.15rem}.bolt{width:40px;height:40px;border-radius:12px;background:var(--mint);color:#07100c;display:grid;place-items:center;font-size:1.25rem;box-shadow:0 0 30px rgba(124,247,196,.16)}
+    .status{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:.9rem}.dot{width:9px;height:9px;border-radius:50%;background:#606b78}.dot.live{background:var(--mint);box-shadow:0 0 0 5px rgba(124,247,196,.1)}
+    .gear{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:13px;padding:11px 15px;cursor:pointer;min-height:46px}.gear:hover{background:var(--panel2)}
+    main{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.75fr);gap:24px;align-items:stretch}.meter,.side{border:1px solid var(--line);background:rgba(17,22,29,.86);backdrop-filter:blur(18px);border-radius:28px;box-shadow:var(--shadow)}
+    .meter{padding:clamp(24px,4vw,58px);display:flex;flex-direction:column;justify-content:space-between;min-height:530px}.eyebrow{text-transform:uppercase;letter-spacing:.15em;color:var(--muted);font-size:.78rem;font-weight:700}.price{font-variant-numeric:tabular-nums;font-size:clamp(5.2rem,14vw,11rem);letter-spacing:-.075em;line-height:.86;margin:32px 0 20px;font-weight:700}.currency{font-size:.32em;color:var(--mint);vertical-align:top;margin-left:.12em;letter-spacing:0}.estimate{color:var(--muted);font-size:1rem}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:44px}.stat{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:18px}.stat span{display:block;color:var(--muted);font-size:.82rem;margin-bottom:8px}.stat strong{font-size:clamp(1.35rem,3vw,2rem);font-variant-numeric:tabular-nums}.stat small{color:var(--muted);font-weight:500}
+    .actions{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:22px}.primary,.finish{border:0;border-radius:17px;min-height:68px;font-weight:750;font-size:1.08rem;cursor:pointer}.primary{background:var(--mint);color:#06100c}.primary:hover{filter:brightness(.94)}.finish{background:transparent;color:var(--text);border:1px solid var(--line);padding:0 25px}.finish:disabled{opacity:.35;cursor:not-allowed}
+    .side{padding:26px;display:flex;flex-direction:column}.side h2{font-size:1rem;margin:0 0 22px}.row{display:flex;justify-content:space-between;gap:20px;padding:15px 0;border-bottom:1px solid var(--line);color:var(--muted)}.row strong{color:var(--text);font-variant-numeric:tabular-nums}.row.total{font-size:1.08rem;border:0;margin-top:4px}.row.total strong{color:var(--mint)}.gps-note{margin-top:auto;padding-top:24px;color:var(--muted);font-size:.82rem;line-height:1.5}.gps-note b{color:var(--text)}
+    footer{display:flex;justify-content:space-between;color:#6f7985;font-size:.75rem;gap:16px}
+    dialog{border:1px solid var(--line);border-radius:24px;background:#10151c;color:var(--text);padding:0;width:min(540px,calc(100vw - 32px));box-shadow:var(--shadow)}dialog::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(5px)}.modal{padding:28px}.modal-head{display:flex;justify-content:space-between;align-items:center}.modal h2{margin:0;font-size:1.3rem}.close{background:none;border:0;color:var(--muted);font-size:1.7rem;cursor:pointer}.form{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}.field label{display:block;color:var(--muted);font-size:.83rem;margin-bottom:8px}.field input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;background:#090d12;color:var(--text);font-size:1rem}.save{grid-column:1/-1;border:0;border-radius:14px;padding:15px;background:var(--mint);color:#06100c;font-weight:750;cursor:pointer}.wide{grid-column:1/-1}.inline{display:flex;gap:9px;align-items:center;color:var(--muted);font-size:.85rem}
+    .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:#f4f7f9;color:#080b10;padding:12px 18px;border-radius:12px;font-weight:650;transition:.25s;pointer-events:none;z-index:5}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:850px){.app{padding:16px;gap:16px}main{grid-template-columns:1fr}.meter{min-height:490px}.side{min-height:320px}.price{font-size:clamp(4.7rem,24vw,8rem)}footer{flex-direction:column}.status-label{display:none}}
+    @media(max-width:500px){.stats{gap:8px}.stat{padding:14px 10px}.stat strong{font-size:1.25rem}.actions{grid-template-columns:1fr}.finish{min-height:56px}.form{grid-template-columns:1fr}.wide,.save{grid-column:auto}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand"><span class="bolt">ϟ</span><span>VoltFare</span></div>
+      <button class="gear" id="historyBtn">Historial y recibos</button>
+      <div class="status"><span id="dot" class="dot"></span><span id="statusText" class="status-label">Listo para iniciar</span><button class="gear" id="settingsBtn" aria-label="Configurar tarifa">Tarifa ⚙</button></div>
+    </header>
+    <main>
+      <section class="meter" aria-label="Estimador de trayecto">
+        <div>
+          <div class="eyebrow">Importe estimado</div>
+          <div class="price"><span id="amount">0,00</span><span class="currency">€</span></div>
+          <div class="estimate" id="rateLabel">Incluye inicio · 1,35 €/km · 0,28 €/min</div>
+        </div>
+        <div>
+          <div class="stats">
+            <div class="stat"><span>Distancia</span><strong id="distance">0,00 <small>km</small></strong></div>
+            <div class="stat"><span>Duración</span><strong id="duration">00:00</strong></div>
+            <div class="stat"><span>Velocidad</span><strong id="speed">0 <small>km/h</small></strong></div>
+          </div>
+          <div class="actions">
+            <button id="mainBtn" class="primary">Iniciar trayecto</button>
+            <button id="finishBtn" class="finish" disabled>Finalizar</button>
+          </div>
+        </div>
+      </section>
+      <aside class="side">
+        <div id="map" aria-label="Mapa del recorrido"></div>
+        <p id="gpsInfo" role="status">El mapa se centrará al recibir ubicación.</p>
+        <button class="gear" id="locateBtn">Localizarme</button>
+        <h2>Desglose</h2>
+        <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
+        <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
+        <div class="row"><span>Tiempo</span><strong id="timeLine">0,00 €</strong></div>
+        <div class="row"><span>Suplementos</span><strong id="extraLine">0,00 €</strong></div>
+        <div class="row"><span>Ajuste al mínimo</span><strong id="minLine">0,00 €</strong></div>
+        <div class="row total"><span>Total estimado</span><strong id="totalLine">0,00 €</strong></div>
+        <p class="gps-note"><b>Medición GPS del navegador.</b><br>La precisión depende de la señal y del dispositivo. Mantén esta pestaña visible durante el recorrido.</p>
+      </aside>
+    </main>
+    <footer><span>Estimador para servicios VTC · No es un taxímetro homologado</span><span>Los importes son orientativos</span></footer>
+  </div>
+
+  <dialog id="settings">
+    <form method="dialog" class="modal" id="settingsForm">
+      <div class="modal-head"><h2>Configurar tarifa</h2><button class="close" type="button" data-close="settings" aria-label="Cerrar">×</button></div>
+      <div class="form">
+        <div class="field"><label for="base">Importe inicial (€)</label><input id="base" type="number" min="0" step="0.01" value="3.50"></div>
+        <div class="field"><label for="perKm">Precio por km (€)</label><input id="perKm" type="number" min="0" step="0.01" value="1.35"></div>
+        <div class="field"><label for="perMin">Precio por minuto (€)</label><input id="perMin" type="number" min="0" step="0.01" value="0.28"></div>
+        <div class="field"><label for="extra">Suplementos (€)</label><input id="extra" type="number" min="0" step="0.01" value="0"></div>
+        <div class="field wide"><label for="minimum">Precio mínimo total (€)</label><input id="minimum" type="number" min="0" max="10000" step="0.01" value="0"><small>0 desactiva el mínimo. Se aplica al total, incluidos suplementos.</small></div>
+        <div class="field"><label for="issuer">Nombre / empresa (opcional)</label><input id="issuer" maxlength="120"></div>
+        <div class="field"><label for="plate">Matrícula (opcional)</label><input id="plate" maxlength="30"></div>
+        <label class="inline wide"><input id="countTime" type="checkbox" checked> Contabilizar tiempo durante todo el trayecto</label>
+        <button class="save" value="default">Guardar tarifa</button>
+      </div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <dialog id="history"><div class="modal"><div class="modal-head"><h2>Historial de trayectos</h2><button class="close" data-close="history" aria-label="Cerrar">×</button></div><p>Guardado solo en este navegador y dispositivo. Si borras sus datos, perderás el historial. Descarga los recibos que quieras conservar.</p><div id="historyList"></div><button class="gear" id="moreBtn" hidden>Cargar más</button></div></dialog>
+  <dialog id="receipt"><div class="modal"><div class="modal-head no-print"><h2>Recibo de trayecto</h2><button class="close" data-close="receipt" aria-label="Cerrar">×</button></div><article id="receiptBody"></article><div class="receipt-actions no-print"><button class="primary" id="printBtn">Imprimir / guardar PDF</button><button class="gear" id="downloadBtn">Descargar recibo</button></div><p class="no-print">En el diálogo de impresión elige «Guardar como PDF», si tu navegador lo permite.</p></div></dialog>
+  <style>
+    #map{height:240px;min-height:240px;border-radius:16px;background:#202b35;z-index:0}
+    #gpsInfo{font-size:14px;color:var(--muted);line-height:1.4;margin:10px 0}
+    #locateBtn{margin-bottom:22px} .side h2{margin-top:4px;margin-bottom:8px}.side .row{padding:10px 0}
+    dialog{max-height:90vh;overflow:auto}#history{width:min(800px,calc(100vw - 32px))}#receipt{width:min(650px,calc(100vw - 32px))}
+    .trip-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0;border-bottom:1px solid var(--line)}
+    .trip-row small{display:block;color:var(--muted);margin-top:6px} .receipt-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:25px}.receipt-actions .primary{padding:12px 20px;min-height:50px}
+    #receiptBody{line-height:1.6;overflow-wrap:anywhere}#receiptBody h1{font-size:1.6rem}#receiptBody table{width:100%;border-collapse:collapse}#receiptBody td{padding:8px 0;border-bottom:1px solid var(--line)}#receiptBody td:last-child{text-align:right}
+    .field small{display:block;line-height:1.5;color:var(--muted);margin-top:8px}button:disabled{opacity:.45;cursor:not-allowed}header{flex-wrap:wrap}.price{font-size:clamp(3rem,11vw,9rem)}.meter{min-width:0}
+    @media print{body{background:white!important;color:black!important}.app,#toast,#history,#settings,.no-print{display:none!important}dialog#receipt{position:static;display:block;border:0;background:white;color:black;max-width:none;width:100%;max-height:none;overflow:visible;box-shadow:none}dialog::backdrop{background:transparent}#receiptBody td{border-color:#ccc}.modal{padding:0}@page{margin:18mm}}
+  </style>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
