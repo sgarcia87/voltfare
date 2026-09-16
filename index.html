@@ -82,7 +82,7 @@
         <p class="gps-note"><b>Medición GPS del navegador.</b><br>La precisión depende de la señal y del dispositivo. Mantén esta pestaña visible durante el recorrido.</p>
           <details id="extraControls" class="simple-help"><summary>Corregir los kilómetros</summary><p>Úsalo si faltan kilómetros por un corte de GPS. Pausa primero el viaje.</p><div class="control"><button id="adjustBtn" class="gear" aria-describedby="adjustHelp" disabled>Corregir distancia total</button><small id="adjustHelp">Introduce el total del cuentakilómetros. Sustituye la distancia actual.</small></div></details></div></dialog>
   <dialog id="help"><div class="modal"><div class="modal-head"><h2>Cómo usar VoltFare</h2><button class="close" data-close="help" aria-label="Cerrar">×</button></div>    <section class="quick-guide" aria-label="Cómo empezar"><strong>Tu viaje, en 3 pasos</strong><span>1. Configura los precios</span><span>2. Empieza el viaje</span><span>3. Termina y guarda el recibo</span></section>
-<dl class="help-list"><dt>Configurar precios</dt><dd>Elige la tarifa antes de empezar. Queda fija durante el viaje.</dd><dt>Empezar / continuar viaje</dt><dd>Suma kilómetros y tiempo según tu tarifa.</dd><dt>Pausar sin cobrar</dt><dd>Detiene el tiempo y la distancia hasta que continúes.</dd><dt>Cobrar espera</dt><dd>Aplica solo el precio por minuto de espera. No suma kilómetros.</dd><dt>Terminar y guardar</dt><dd>Guarda el viaje y abre el recibo para descargarlo o imprimirlo.</dd><dt>Desglose y ajustes</dt><dd>Muestra los conceptos del precio y permite corregir la distancia si el viaje está pausado.</dd><dt>El mapa</dt><dd>La línea verde sigue el GPS; la línea ámbar discontinua indica un tramo estimado. «Centrar mi posición» sigue tu ubicación. «Ver todo el recorrido» muestra el viaje completo.</dd><dt>Ver viajes y recibos</dt><dd>Abre los viajes que has guardado en este navegador.</dd></dl></div></dialog>
+<dl class="help-list"><dt>Configurar precios</dt><dd>Elige la tarifa antes de empezar. Queda fija durante el viaje.</dd><dt>Empezar / continuar viaje</dt><dd>Suma kilómetros y tiempo según tu tarifa.</dd><dt>Pausar sin cobrar</dt><dd>Detiene el tiempo y la distancia hasta que continúes.</dd><dt>Cobrar espera</dt><dd>Aplica solo el precio por minuto de espera. No suma kilómetros.</dd><dt>Terminar y guardar</dt><dd>Guarda el viaje y abre el recibo para descargarlo o imprimirlo.</dd><dt>Desglose y ajustes</dt><dd>Muestra los conceptos del precio y permite corregir la distancia si el viaje está pausado.</dd><dt>El mapa</dt><dd>El mapa sigue tu posición al moverte. Un punto y círculo ámbar indican poca precisión: esa posición se muestra, pero no añade kilómetros. La línea verde sigue el GPS; la línea ámbar discontinua indica un tramo estimado. «Centrar mi posición» sigue tu ubicación. «Ver todo el recorrido» muestra el viaje completo.</dd><dt>Ver viajes y recibos</dt><dd>Abre los viajes que has guardado en este navegador.</dd></dl></div></dialog>
   <dialog id="settings">
     <form method="dialog" class="modal" id="settingsForm">
       <div class="modal-head"><h2>Configurar precios</h2><button class="close" type="button" data-close="settings" aria-label="Cerrar">×</button></div>
@@ -144,6 +144,7 @@
   <script src="./app.js"></script>
 </body>
 </html>
+
 
 
 

@@ -86,3 +86,13 @@ run('begin()');fix(10,.02);assert.equal(run('segments.at(-1).length'),1);
 assert.equal(run("$('#mainBtn').textContent"),'Pausar sin cobrar');
 run('pause()');assert.equal(run("$('#mainBtn').textContent"),'Continuar viaje');
 console.log('OK: live route updates, gap styles, waiting exclusion, restored paths and state-dependent control descriptions.');
+
+// Location requests must fetch a fresh fix even when a marker already exists.
+run(`navigator.geolocation={watchPosition(fn){this.watch=fn;return 1},clearWatch(){},getCurrentPosition(fn){this.once=fn;this.requests=(this.requests||0)+1}};begin()`);
+fix(1,.03);
+run("$('#locateBtn').onclick()");assert.equal(run('navigator.geolocation.requests'),1);
+clock+=1000;run('navigator.geolocation.once({coords:{latitude:0,longitude:.03,accuracy:5},timestamp:Date.now()})');
+clock+=16000;run('checkGps()');assert.equal(run('navigator.geolocation.requests'),2);
+const frozen=run('distanceKm');run('pause()');clock+=1000;run('navigator.geolocation.once({coords:{latitude:0,longitude:.031,accuracy:5},timestamp:Date.now()})');assert.equal(run('distanceKm'),frozen);
+run('begin()');clock+=1000;run('notePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()})');const received=run('receivedAt');clock+=16000;run('notePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()-16000})');assert.equal(run('receivedAt'),received);
+console.log('OK: fresh locate requests, silent GPS fallback, stale fix rejection, late paused callbacks ignored.');

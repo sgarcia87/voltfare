@@ -4,7 +4,7 @@ let tariff={...defaults};
 try{Object.assign(tariff,JSON.parse(localStorage.getItem('voltFareTariff')||'{}'))}catch{}
 for(const k of ['base','perKm','perMin','waitRate','extra','minimum'])if(!Number.isFinite(tariff[k])||tariff[k]<0||tariff[k]>10000)tariff[k]=defaults[k];
 let state='idle', trip=null, elapsed=0, distanceKm=0, lastPos=null, watchId=null, timer=null, speed=null, generation=0, goodAt=0, saving=false, pending=null;
-let map=null, marker=null, route=null, segments=[], estimatedSegments=[], estimatedRoute=null, followPosition=true, selected=null, historyOffset=0;
+let map=null, marker=null, route=null, segments=[], estimatedSegments=[], estimatedRoute=null, followPosition=true, accuracyCircle=null, displayedAt=0, requestedAt=0, receivedAt=0, receivedTimestamp=0, positionRequest=null, selected=null, historyOffset=0;
 function notify(msg){$('#toast').textContent=msg;$('#toast').classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('#toast').classList.remove('show'),6000)}
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function calc(km,ms,r,waitMs=0){const c=n=>Math.round(n*100),base=c(r.base),distance=c(km*r.perKm),time=c((r.countTime?Math.max(0,ms-waitMs)/60000*r.perMin:0)+waitMs/60000*(r.waitRate??0)),extra=c(r.extra),sub=base+distance+time+extra,adjustment=Math.max(0,c(r.minimum)-sub);return {base,distance,time,extra,adjustment,total:sub+adjustment}}
@@ -28,7 +28,7 @@ function render(){
   $('#settingsHelp').textContent=trip?'Los precios quedan fijos durante este viaje.':'Elige lo que cobrarás antes de empezar.';
   $('#adjustHelp').textContent=state==='paused'?'Introduce los kilómetros TOTALES del viaje. Sustituyen la distancia actual.':'Pulsa «Pausar sin cobrar» para poder corregir la distancia.';
   $('#journeyHelp').textContent=pending?'El viaje ha terminado, pero falta guardarlo. Pulsa «Reintentar guardado».':state==='idle'?'Revisa los precios y pulsa «Empezar viaje» al salir.':state==='paused'?'En pausa: no se suman tiempo ni kilómetros. Puedes continuar o terminar.':waiting?'En espera: se cobra '+money(r.waitRate||0)+' por minuto. Pulsa «Volver al viaje» antes de circular.':'Viaje en marcha. Al llegar, pulsa «Terminar y guardar».';
-  $('#routeBtn').disabled=!map||!segments.some(s=>s.length);
+  $('#routeBtn').disabled=!map||(!marker&&!segments.some(s=>s.length));
 
   $('#qualityInfo').textContent=trip?'GPS: '+fmt(trip.measuredKm||0)+' km · Estimados: '+fmt(trip.estimatedKm||0)+' km'+(trip.manual?' · Total ajustado manualmente':'')+(trip.gpsIncomplete?' · Revisar medición':''):'';
   $('#connectionInfo').textContent=(navigator.onLine===false?'Sin internet':'Conexión disponible')+' · '+offlineStatus;
@@ -43,7 +43,38 @@ try{
   estimatedRoute=L.polyline([],{color:'#e9a43b',weight:4,dashArray:'8 8'}).addTo(map);
   map.on('dragstart',()=>{followPosition=false});
 }catch{$('#map').textContent='No se pudo cargar el mapa. Comprueba tu conexión; el estimador sigue disponible.'}
-function showPosition(c){if(!map)return;const p=[c.latitude,c.longitude];if(!marker)marker=L.circleMarker(p,{radius:8,color:'#fff',weight:3,fillColor:'#14896a',fillOpacity:1}).addTo(map);else marker.setLatLng(p);if(followPosition&&(!map.getBounds().contains(p)||!goodAt))map.setView(p,15)}
+function validPosition(p){const c=p?.coords;return c&&Number.isFinite(c.latitude)&&Math.abs(c.latitude)<=90&&Number.isFinite(c.longitude)&&Math.abs(c.longitude)<=180&&Number.isFinite(c.accuracy)&&c.accuracy>=0&&Number.isFinite(p.timestamp)&&Date.now()-p.timestamp<=15000&&p.timestamp<=Date.now()+1000}
+function showPosition(c,timestamp=Date.now()){
+  if(!map||timestamp<displayedAt)return;
+  const first=!marker,p=[c.latitude,c.longitude],uncertain=c.accuracy>50;
+  displayedAt=timestamp;
+  if(!marker)marker=L.circleMarker(p,{radius:8,color:'#fff',weight:3,fillOpacity:1}).addTo(map);else marker.setLatLng(p);
+  marker.setStyle({fillColor:uncertain?'#e9a43b':'#14896a'});
+  if(!accuracyCircle)accuracyCircle=L.circle(p,{radius:c.accuracy,color:'#e9a43b',weight:1,fillOpacity:.08,interactive:false}).addTo(map);
+  else accuracyCircle.setLatLng(p).setRadius(c.accuracy);
+  if(followPosition)map.setView(p,first?15:map.getZoom(),{animate:false});
+}
+function notePosition(p){if(validPosition(p)&&p.timestamp>receivedTimestamp){receivedTimestamp=p.timestamp;receivedAt=Date.now()}}
+function requestPosition(manual=false){
+  if(!navigator.geolocation){notify('Ubicación no disponible en este navegador');return}
+  if(positionRequest)return;
+  const token={generation,requested:Date.now()};positionRequest=token;requestedAt=token.requested;
+  const release=()=>{if(positionRequest===token)positionRequest=null};
+  navigator.geolocation.getCurrentPosition(p=>{
+    release();if(token.generation!==generation)return;
+    notePosition(p);
+    if(state==='running')acceptPosition(p);
+    else if(validPosition(p)){showPosition(p.coords,p.timestamp);$('#gpsInfo').textContent='Ubicación recibida · ±'+Math.round(p.coords.accuracy)+' m';render()}
+    else if(manual)notify('El navegador ha devuelto una ubicación antigua o no válida.');
+  },e=>{release();if(token.generation!==generation)return;if(manual)notify(e.code===1?'Activa el permiso de ubicación del navegador.':'No llega una posición nueva. Comprueba el GPS y el permiso de ubicación.')},{enableHighAccuracy:true,maximumAge:0,timeout:10000});
+}
+function checkGps(){
+  if(state!=='running')return;
+  const now=Date.now();
+  if(positionRequest&&now-positionRequest.requested>12000)positionRequest=null;
+  if(navigator.geolocation&&now-Math.max(receivedAt,requestedAt)>10000)requestPosition();
+  if(now-receivedAt>15000)loseGps('Sin posiciones nuevas del navegador. Intentando recuperar el GPS…');
+}
 function haversine(a,b){const rad=x=>x*Math.PI/180,lat=rad(b.latitude-a.latitude),lon=rad(b.longitude-a.longitude),h=Math.sin(lat/2)**2+Math.cos(rad(a.latitude))*Math.cos(rad(b.latitude))*Math.sin(lon/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(h)))}
 let lastFix=null,gap=false,waiting=false,lastTick=0;
 let offlineStatus='Preparando uso sin conexión';
@@ -58,11 +89,15 @@ function tick(){
   const now=Date.now(),delta=Math.max(0,now-lastTick);lastTick=now;elapsed+=delta;
   if(waiting)trip.waitMs+=delta;
 }
-function stopGps(){generation++;if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);watchId=null;lastPos=null;lastFix=null;gap=false;speed=null}
+function stopGps(){generation++;if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);watchId=null;lastPos=null;lastFix=null;gap=false;speed=null;positionRequest=null}
 function loseGps(message){gap=true;trip.gpsIncomplete=true;speed=null;$('#gpsInfo').textContent=message}
 function acceptPosition(p){
   const c=p.coords,now=Date.now();
-  if(!Number.isFinite(c.latitude)||Math.abs(c.latitude)>90||!Number.isFinite(c.longitude)||Math.abs(c.longitude)>180||!Number.isFinite(c.accuracy)||c.accuracy<0||c.accuracy>50||!Number.isFinite(p.timestamp)||now-p.timestamp>15000||p.timestamp>now+1000){loseGps('Señal imprecisa. Kilómetros pendientes de recuperar.');return}
+  if(!validPosition(p)){loseGps('Ubicación antigua o no válida. Esperando una posición nueva.');render();return}
+  if(c.accuracy>50){
+    showPosition(c,p.timestamp);
+    loseGps('Posición aproximada (±'+Math.round(c.accuracy)+' m). Se muestra en ámbar; los kilómetros esperan mejor precisión.');render();return;
+  }
   const n={latitude:c.latitude,longitude:c.longitude,accuracy:c.accuracy,timestamp:p.timestamp};
   if(lastFix&&n.timestamp<=lastFix.timestamp)return;
   const outage=lastFix?(n.timestamp-lastFix.timestamp)/1000:0;
@@ -80,16 +115,16 @@ function acceptPosition(p){
     }else if(d>=threshold){distanceKm+=d;trip.measuredKm+=d;lastPos=n;segments[segments.length-1].push([n.latitude,n.longitude])}
   }
   if(!lastPos||waiting){lastPos=n;if(!segments.length)segments.push([]);if(!waiting)segments[segments.length-1].push([n.latitude,n.longitude])}
-  lastFix=n;gap=false;showPosition(c);goodAt=now;speed=Number.isFinite(c.speed)?Math.max(0,c.speed*3.6):null;
+  lastFix=n;gap=false;showPosition(c,p.timestamp);goodAt=now;speed=Number.isFinite(c.speed)?Math.max(0,c.speed*3.6):null;
   route?.setLatLngs(segments);estimatedRoute?.setLatLngs(estimatedSegments);
   $('#gpsInfo').textContent='GPS ±'+Math.round(c.accuracy)+' m'+(trip.gpsIncomplete?' · Revisa los kilómetros antes de finalizar':'');
   render();
 }
 function startGps(){
-  stopGps();const g=generation;
+  stopGps();const g=generation;receivedAt=Date.now();receivedTimestamp=0;requestedAt=0;
   if(!navigator.geolocation){loseGps('Ubicación no disponible. Solo tiempo; puedes ajustar kilómetros al finalizar.');return}
   watchId=navigator.geolocation.watchPosition(p=>{
-    if(g!==generation||state!=='running')return;acceptPosition(p);
+    if(g!==generation||state!=='running')return;notePosition(p);acceptPosition(p);
   },e=>{if(g!==generation||state!=='running')return;loseGps(e.code===1?'Ubicación denegada. Activa el permiso del navegador.':'Sin GPS. El tiempo continúa según tarifa; distancia pendiente.');render()},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
 }
 function begin(){
@@ -98,8 +133,8 @@ function begin(){
     if(!confirm('El tiempo comienza al iniciar. Si no hay GPS, no se medirán kilómetros hasta recibir señal. Podrás ajustarlos al finalizar. ¿Iniciar?'))return;
     trip={id:crypto.randomUUID(),started:new Date().toISOString(),tariff:{...tariff},gpsIncomplete:false,measuredKm:0,estimatedKm:0,waitMs:0};elapsed=0;distanceKm=0;segments=[[]];estimatedSegments=[];followPosition=true;route?.setLatLngs([]);estimatedRoute?.setLatLngs([])
   }else segments.push([]);
-  state='running';waiting=false;lastTick=Date.now();goodAt=0;startGps();
-  timer=setInterval(()=>{tick();if(Date.now()-goodAt>15000)loseGps('Esperando señal GPS. El tiempo continúa según tarifa.');checkpoint();render()},1000);checkpoint();render();
+  state='running';waiting=false;followPosition=true;lastTick=Date.now();goodAt=0;startGps();
+  timer=setInterval(()=>{tick();checkGps();checkpoint();render()},1000);checkpoint();render();
 }
 function pause(){tick();waiting=false;clearInterval(timer);stopGps();state='paused';checkpoint();render()}
 function reset(){clearInterval(timer);stopGps();state='idle';trip=null;pending=null;elapsed=0;distanceKm=0;try{localStorage.removeItem(ACTIVE_KEY)}catch{}render()}
@@ -128,6 +163,7 @@ $('#adjustForm').addEventListener('submit',e=>{
   trip.manual={km,reason,previousKm:distanceKm,at:new Date().toISOString()};distanceKm=km;checkpoint();$('#adjustment').close();render();
 });
 window.addEventListener('pagehide',()=>{tick();checkpoint()});
+window.addEventListener('focus',()=>{if(state==='running')requestPosition()});
 window.addEventListener('online',render);window.addEventListener('offline',render);
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{offlineStatus='Aplicación disponible sin internet';render()}).catch(()=>{offlineStatus='Apertura sin internet no disponible';render()});
@@ -168,8 +204,13 @@ $('#helpBtn').onclick=()=>$('#help').showModal();
 $('#detailsBtn').onclick=()=>$('#details').showModal();
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(()=>map?.invalidateSize()).observe($('#map'))}
 $('#mainBtn').onclick=()=>state==='running'?pause():begin();$('#finishBtn').onclick=finish;
-$('#routeBtn').onclick=()=>{if(!map||!segments.some(s=>s.length))return;followPosition=false;map.fitBounds(route.getBounds(),{padding:[24,24],maxZoom:16})};
-$('#locateBtn').onclick=()=>{followPosition=true;if(marker){map.setView(marker.getLatLng(),15);return}if(!navigator.geolocation){notify('Ubicación no disponible');return}navigator.geolocation.getCurrentPosition(p=>{showPosition(p.coords);map?.setView([p.coords.latitude,p.coords.longitude],15);$('#gpsInfo').textContent='Ubicación recibida · ±'+Math.round(p.coords.accuracy)+' m'},()=>notify('No se pudo obtener ubicación. Revisa los permisos.'),{enableHighAccuracy:true,timeout:12000})};
+$('#routeBtn').onclick=()=>{
+  if(!map)return;
+  followPosition=false;
+  if(segments.some(s=>s.length))map.fitBounds(route.getBounds(),{padding:[24,24],maxZoom:16});
+  else if(marker){map.setView(marker.getLatLng(),map.getZoom());notify('Todavía no hay recorrido medido. Se muestra la última ubicación recibida.');}
+};
+$('#locateBtn').onclick=()=>{followPosition=true;if(marker)map.setView(marker.getLatLng(),map.getZoom(),{animate:false});requestPosition(true)};
 $('#settingsBtn').onclick=()=>{for(const k of ['base','perKm','perMin','waitRate','extra','minimum','issuer','plate'])$('#'+k).value=tariff[k]??'';$('#countTime').checked=tariff.countTime;$('#settings').showModal()};
 for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$('#'+b.dataset.close).close();
 for(const k of ['base','perKm','perMin','waitRate','extra'])$('#'+k).max=10000;
@@ -196,5 +237,6 @@ $('#downloadBtn').onclick=()=>{if(!selected)return;const html='<!doctype html><h
 window.addEventListener('beforeunload',e=>{if(trip){e.preventDefault();e.returnValue=''}});
 render();
 recover();
+
 
 
