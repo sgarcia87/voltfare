@@ -122,7 +122,7 @@ VoltFare usa la ubicación que proporciona el navegador; **no se conecta a la AP
 | Corte largo, salto imposible o datos insuficientes | No se reconstruye el recorrido. Revisa el total y, si procede, ajústalo con el cuentakilómetros. |
 | Recarga o cierre de la página | Se ofrece el viaje guardado en pausa. No se incluyen automáticamente tiempo ni distancia del intervalo cerrado. |
 
-**Hora GPS:** se admiten marcas de tiempo de época en milisegundos y se convierten formatos reconocibles en segundos, microsegundos o nanosegundos. También se admite un reloj relativo a la página cuando coincide con su origen temporal y es reciente. La conversión conserva la antigüedad: no sustituye la hora recibida por la hora actual. Fechas desconocidas o desfasadas siguen sin sumar kilómetros. **Desglose y ajustes → Datos GPS** permite consultar el valor recibido, su interpretación y la precisión, sin mostrar coordenadas.
+**Hora GPS:** se admiten marcas de tiempo de época en milisegundos y se convierten formatos reconocibles en segundos, microsegundos o nanosegundos. También se admite un reloj relativo a la página cuando coincide con su origen temporal y es reciente. La conversión conserva la antigüedad: no sustituye la hora recibida por la hora actual. Las fechas de calendario desfasadas siguen sin sumar kilómetros. Si el proveedor entrega un contador interno que no representa una fecha, se compara su avance con el tiempo de recepción: hacen falta al menos tres valores distintos, dos segundos de observación y una escala temporal coherente. La sincronización se reinicia al pausar, retroceder el contador, perder coherencia o pasar más de 30 segundos sin datos. No se reconstruyen los kilómetros anteriores a la sincronización. Esta comprobación verifica el ritmo de actualización, no la fecha absoluta del proveedor; el recibo indica cuándo se usa. Los valores repetidos no añaden distancia. **Desglose y ajustes → Datos GPS** permite consultar el valor recibido, su interpretación y la precisión, sin mostrar coordenadas.
 
 **Criterios de recuperación:** una interrupción detectada o más de 15 segundos entre posiciones se considera un corte. Solo se estima si entre la última posición válida y la nueva pasan como máximo 60 segundos, ambas precisiones son de 25 m o mejores, la distancia es de hasta 2 km y la velocidad implícita no supera 180 km/h. Los pequeños movimientos dentro del umbral de ruido no añaden kilómetros. Las posiciones ordinarias con precisión peor de 50 m o antigüedad superior a 15 segundos se descartan.
 
@@ -202,6 +202,7 @@ Looking for a **Tesla fare calculator**, **GPS trip cost calculator** or **brows
 Creado por [Sergi Garcia · sgarcia87](https://github.com/sgarcia87)
 
 </div>
+
 
 
 

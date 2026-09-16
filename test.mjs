@@ -129,3 +129,23 @@ assert.equal(fs.readFileSync(new URL('app-compat.js',import.meta.url),'utf8'),fs
 assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes("addEventListener('beforeunload'"));
 assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes("addEventListener('pagehide'"));
 console.log('OK: compatible and main engines match; no reload-blocking teardown handlers.');
+
+// Regression: the Tesla diagnostic reported a non-calendar counter 19562025000.
+for(const increment of [1,1000,1000000,1000000000]){
+  run('reset();begin()');
+  for(let i=0;i<4;i++){
+    clock+=1000;ctx.counterFix={coords:{latitude:0,longitude:i*.0001,accuracy:1.4},timestamp:19562025000+i*increment};
+    run('acceptPosition(normalizePosition(counterFix))');
+    if(i<3)assert.equal(run('distanceKm'),0);
+  }
+  assert.ok(run('distanceKm')>.01);assert.equal(run('trip.relativeClock'),true);
+  const km=run('distanceKm');clock+=1000;run('acceptPosition(normalizePosition(counterFix))');assert.equal(run('distanceKm'),km);
+  clock+=31000;ctx.counterFix.timestamp+=32*increment;run('acceptPosition(normalizePosition(counterFix))');assert.equal(run('distanceKm'),km);assert.equal(run('deviceClock.scale'),null);
+}
+run('reset();begin()');
+for(let i=0;i<4;i++){clock+=1000;run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:0,accuracy:1.4},timestamp:19562025000}))')}
+assert.equal(run('distanceKm'),0);assert.equal(run('deviceClock.scale'),null);
+for(let i=0;i<4;i++){clock+=1000;run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:0,accuracy:1.4},timestamp:Date.now()-86400000}))')}
+assert.equal(run('distanceKm'),0);
+run('pause()');assert.equal(run('deviceClock'),null);
+console.log('OK: Tesla counter cadence calibration, repeated/frozen values, long outages and stale epoch safeguards.');
