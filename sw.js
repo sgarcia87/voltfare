@@ -1,4 +1,4 @@
-const CACHE='voltfare-shell-v8';
+const CACHE='voltfare-shell-v9';
 const SHELL=['./','./index.html','./app.js','./vendor/leaflet.js','./vendor/leaflet.css'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
@@ -11,6 +11,7 @@ self.addEventListener('fetch',event=>{
   if(!SHELL.some(path=>new URL(path,self.registration.scope).pathname===url.pathname))return;
   event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(url.pathname))||fetch(event.request)));
 });
+
 
 
 

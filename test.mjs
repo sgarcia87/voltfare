@@ -124,3 +124,8 @@ run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:.001,accurac
 run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:.1,accuracy:5},timestamp:(Date.now()-90000)/1000}))');assert.equal(run('distanceKm'),clockDistance);
 assert.equal(run('validPosition(normalizePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:12345}))'),false);
 console.log('OK: GPS clock units, stale data remains stale, live seconds accrue distance, duplicate timestamps do not.');
+
+assert.equal(fs.readFileSync(new URL('app-compat.js',import.meta.url),'utf8'),fs.readFileSync(new URL('app.js',import.meta.url),'utf8'));
+assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes("addEventListener('beforeunload'"));
+assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes("addEventListener('pagehide'"));
+console.log('OK: compatible and main engines match; no reload-blocking teardown handlers.');

@@ -51,7 +51,7 @@ Está diseñada con lectura grande, modo oscuro y disposición horizontal para l
 5. Al terminar, pulsa **Terminar y guardar** y confirma el guardado. Se abrirá el recibo.
 6. Recupera los servicios anteriores desde **Ver viajes y recibos**.
 
-**Configura y manipula la aplicación con el vehículo detenido.** Mantén la pestaña visible durante el viaje. La recarga no abre una confirmación de salida. Se guarda una copia local cada segundo; al volver a abrir se recupera en pausa, sin cobrar automáticamente el intervalo con la página cerrada.
+**Configura y manipula la aplicación con el vehículo detenido.** Mantén la pestaña visible durante el viaje. La recarga no abre una confirmación de salida ni ejecuta guardados durante el cierre; se recupera el último guardado periódico, que puede omitir el último segundo. Se guarda una copia local cada segundo; al volver a abrir se recupera en pausa, sin cobrar automáticamente el intervalo con la página cerrada.
 
 ### Controles fáciles de entender
 
@@ -134,6 +134,10 @@ Estos umbrales son filtros prácticos, no una garantía de exactitud. Una línea
 
 **Recuperación local:** el viaje activo se guarda cada segundo y al pausar o ajustar. Puede perderse hasta el último intervalo no guardado si el navegador se cierra abruptamente. Al recuperar, revisa los kilómetros antes de reanudar o finalizar. Si falla el almacenamiento se avisa; no cierres la página hasta resolverlo. Usa una sola pestaña para el viaje activo: la recuperación no coordina varias pestañas o dispositivos.
 
+### Acceso compatible
+
+Si el navegador del vehículo se bloquea al recargar, abre [VoltFare en modo compatible](https://sgarcia87.github.io/voltfare/compatible.html). Usa entradas distintas para evitar la copia offline anterior y no registra un service worker. Comparte el historial y la copia del viaje activo con la web principal. Requiere conexión para abrirse; recupera el último guardado automático en pausa. Usa una sola pestaña de VoltFare.
+
 ## 🛠️ Ejecutar y desarrollar
 
 La web es estática: HTML, CSS y JavaScript, con [Leaflet](https://leafletjs.com/) para el mapa. No requiere npm ni compilación.
@@ -198,6 +202,7 @@ Looking for a **Tesla fare calculator**, **GPS trip cost calculator** or **brows
 Creado por [Sergi Garcia · sgarcia87](https://github.com/sgarcia87)
 
 </div>
+
 
 
 
