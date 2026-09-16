@@ -72,7 +72,7 @@
     <footer><span>Estimador para servicios VTC · No es un taxímetro homologado</span><span>Los importes son orientativos</span></footer>
   </div>
 
-  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
+  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <details class="simple-help"><summary>Datos GPS</summary><p id="gpsDiagnostics" style="overflow-wrap:anywhere">VoltFare · GPS v7 · Todavía no se ha recibido ubicación.</p></details><p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
         <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
         <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
         <div class="row"><span>Tiempo</span><strong id="timeLine">0,00 €</strong></div>
@@ -144,6 +144,7 @@
   <script src="./app.js"></script>
 </body>
 </html>
+
 
 
 

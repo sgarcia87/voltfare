@@ -107,3 +107,20 @@ run('pause();seekCurrentPosition()');assert.notEqual(run('locateWatch'),null);
 run('navigator.geolocation.watch({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()})');assert.equal(run('locateWatch'),null);
 run('seekCurrentPosition();begin()');assert.equal(run('locateWatch'),null);
 console.log('OK: stale fixes never billed, specific diagnostics, temporary watch recovery and cleanup.');
+
+run('pause();begin()');
+for(const scale of [1,1/1000,1000,1000000]){
+  const normalized=run(`normalizePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()*${scale}})`);
+  assert.ok(Math.abs(normalized.timestamp-clock)<1);
+  ctx.normalized=normalized;assert.equal(run('validPosition(normalized)'),true);
+  ctx.oldFix=run(`normalizePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:(Date.now()-90000)*${scale}})`);
+  assert.equal(run('validPosition(oldFix)'),false);
+}
+run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()/1000}))');
+clock+=10000;run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:.001,accuracy:5},timestamp:Date.now()/1000}))');
+assert.ok(run('distanceKm')>.11);assert.equal(run('trip.timestampAdjusted'),true);
+const clockDistance=run('distanceKm');
+run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:.001,accuracy:5},timestamp:Date.now()/1000}))');assert.equal(run('distanceKm'),clockDistance);
+run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:.1,accuracy:5},timestamp:(Date.now()-90000)/1000}))');assert.equal(run('distanceKm'),clockDistance);
+assert.equal(run('validPosition(normalizePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:12345}))'),false);
+console.log('OK: GPS clock units, stale data remains stale, live seconds accrue distance, duplicate timestamps do not.');

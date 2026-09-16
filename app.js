@@ -43,12 +43,32 @@ try{
   estimatedRoute=L.polyline([],{color:'#e9a43b',weight:4,dashArray:'8 8'}).addTo(map);
   map.on('dragstart',()=>{followPosition=false});
 }catch{$('#map').textContent='No se pudo cargar el mapa. Comprueba tu conexión; el estimador sigue disponible.'}
+function normalizePosition(p){
+  // Standard geolocation uses epoch milliseconds. Some embedded providers use
+  // seconds, microseconds or nanoseconds: convert units, never replace with now.
+  const raw=p?.timestamp,now=Date.now();let timestamp=raw,clockFormat='milisegundos';
+  const epoch=t=>Number.isFinite(t)&&t>=946684800000&&t<4102444800000;
+  if(Number.isFinite(raw)&&raw>0&&!epoch(raw)){
+    const candidates=[[raw*1000,'segundos'],[raw/1000,'microsegundos'],[raw/1000000,'nanosegundos']].filter(([t])=>epoch(t));
+    if(candidates.length===1)[timestamp,clockFormat]=candidates[0];
+    else if(typeof performance!=='undefined'&&Number.isFinite(performance.timeOrigin)&&raw>=0){
+      const relative=performance.timeOrigin+raw;
+      // Only recognize the page's own monotonic clock near its current reading.
+      if(relative<=now+1000&&now-relative<=15000){timestamp=relative;clockFormat='reloj de la página'}
+    }
+  }
+  const result={coords:p?.coords,timestamp,rawTimestamp:raw,clockFormat};
+  const age=Number.isFinite(timestamp)?Math.round((now-timestamp)/1000):null;
+  $('#gpsDiagnostics').textContent='VoltFare · GPS v7 | hora recibida: '+String(raw)+' | formato: '+clockFormat+' | desfase: '+(age===null?'desconocido':age+' s')+' | precisión: '+String(p?.coords?.accuracy)+' m';
+  return result;
+}
 function hasCoordinates(p){const c=p?.coords;return !!c&&Number.isFinite(c.latitude)&&Math.abs(c.latitude)<=90&&Number.isFinite(c.longitude)&&Math.abs(c.longitude)<=180}
 function positionIssue(p){
   if(!hasCoordinates(p))return 'No se han recibido coordenadas utilizables.';
   if(!Number.isFinite(p.timestamp)||p.timestamp<=0)return 'La ubicación no incluye una hora válida.';
   const age=Date.now()-p.timestamp;
   if(age < -1000)return 'La hora de la ubicación no coincide con la del dispositivo. Revisa la fecha y hora automáticas.';
+  if(age>86400000)return 'La fecha GPS no coincide con la actual. Consulta «Datos GPS» en Desglose y ajustes.';
   if(age>15000){const seconds=Math.round(age/1000);return 'Última ubicación de hace '+(seconds<120?seconds+' segundos':Math.round(seconds/60)+' minutos')+'.';}
   if(!Number.isFinite(p.coords.accuracy)||p.coords.accuracy<0)return 'La ubicación no indica su precisión.';
   return '';
@@ -73,6 +93,7 @@ function seekCurrentPosition(){
   const g=generation;
   locateWatch=navigator.geolocation.watchPosition(p=>{
     if(g!==generation)return;
+    p=normalizePosition(p);
     if(validPosition(p)){notePosition(p);showPosition(p.coords,p.timestamp);$('#gpsInfo').textContent='Ubicación actual · ±'+Math.round(p.coords.accuracy)+' m';stopLocateWatch();render()}
     else showReference(p);
   },e=>{if(g!==generation)return;stopLocateWatch();$('#gpsInfo').textContent=e.code===1?'Permiso de ubicación denegado. Actívalo en el navegador.':'El navegador no ha facilitado una posición actual. Comprueba la ubicación del dispositivo y vuelve a centrar.'},{enableHighAccuracy:true,maximumAge:0,timeout:20000});
@@ -97,7 +118,7 @@ function requestPosition(manual=false){
   const release=()=>{if(positionRequest===token)positionRequest=null};
   navigator.geolocation.getCurrentPosition(p=>{
     release();if(token.generation!==generation)return;
-    notePosition(p);
+    p=normalizePosition(p);notePosition(p);
     if(state==='running')acceptPosition(p);
     else if(validPosition(p)){showPosition(p.coords,p.timestamp);$('#gpsInfo').textContent='Ubicación recibida · ±'+Math.round(p.coords.accuracy)+' m';render()}
     else {showReference(p);if(manual)seekCurrentPosition();}
@@ -133,6 +154,7 @@ function acceptPosition(p){
     showPosition(c,p.timestamp);
     loseGps('Posición aproximada (±'+Math.round(c.accuracy)+' m). Se muestra en ámbar; los kilómetros esperan mejor precisión.');render();return;
   }
+  if(p.clockFormat&&p.clockFormat!=='milisegundos')trip.timestampAdjusted=true;
   const n={latitude:c.latitude,longitude:c.longitude,accuracy:c.accuracy,timestamp:p.timestamp};
   if(lastFix&&n.timestamp<=lastFix.timestamp)return;
   const outage=lastFix?(n.timestamp-lastFix.timestamp)/1000:0;
@@ -152,14 +174,14 @@ function acceptPosition(p){
   if(!lastPos||waiting){lastPos=n;if(!segments.length)segments.push([]);if(!waiting)segments[segments.length-1].push([n.latitude,n.longitude])}
   lastFix=n;gap=false;showPosition(c,p.timestamp);goodAt=now;speed=Number.isFinite(c.speed)?Math.max(0,c.speed*3.6):null;
   route?.setLatLngs(segments);estimatedRoute?.setLatLngs(estimatedSegments);
-  $('#gpsInfo').textContent='GPS ±'+Math.round(c.accuracy)+' m'+(trip.gpsIncomplete?' · Revisa los kilómetros antes de finalizar':'');
+  $('#gpsInfo').textContent='GPS ±'+Math.round(c.accuracy)+' m'+(p.clockFormat&&p.clockFormat!=='milisegundos'?' · Hora GPS adaptada':'')+(trip.gpsIncomplete?' · Revisa los kilómetros antes de finalizar':'');
   render();
 }
 function startGps(){
   stopGps();const g=generation;receivedAt=Date.now();receivedTimestamp=0;requestedAt=0;
   if(!navigator.geolocation){loseGps('Ubicación no disponible. Solo tiempo; puedes ajustar kilómetros al finalizar.');return}
   watchId=navigator.geolocation.watchPosition(p=>{
-    if(g!==generation||state!=='running')return;notePosition(p);acceptPosition(p);
+    if(g!==generation||state!=='running')return;p=normalizePosition(p);notePosition(p);acceptPosition(p);
   },e=>{if(g!==generation||state!=='running')return;loseGps(e.code===1?'Ubicación denegada. Activa el permiso del navegador.':'Sin GPS. El tiempo continúa según tarifa; distancia pendiente.');render()},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
 }
 function begin(){
@@ -264,7 +286,7 @@ $('#historyBtn').onclick=()=>{$('#history').showModal();loadHistory()};
 $('#moreBtn').onclick=async()=>{$('#moreBtn').disabled=true;await loadHistory(true);$('#moreBtn').disabled=false};
 function receiptHTML(t){
   const rows=[['Inicio',t.totals.base],['Distancia · '+fmt(t.km)+' km × '+money(t.tariff.perKm)+'/km',t.totals.distance],['Tiempo · '+duration(t.elapsed)+' (espera: '+duration(t.waitMs||0)+') · viaje '+(t.tariff.countTime?money(t.tariff.perMin)+'/min':'sin cargo')+' · espera '+money(t.tariff.waitRate||0)+'/min',t.totals.time],['Suplementos',t.totals.extra],['Ajuste al mínimo de '+money(t.tariff.minimum),t.totals.adjustment],['Total estimado',t.totals.total]];
-  return '<h1>VoltFare · Recibo de trayecto</h1><p>Referencia: '+esc(t.id)+'</p>'+(t.tariff.issuer?'<p><strong>'+esc(t.tariff.issuer)+'</strong></p>':'')+(t.tariff.plate?'<p>Matrícula: '+esc(t.tariff.plate)+'</p>':'')+'<p>Inicio: '+esc(new Date(t.started).toLocaleString('es-ES'))+'<br>Fin: '+esc(new Date(t.ended).toLocaleString('es-ES'))+'</p><table>'+rows.map(([a,b])=>'<tr><td>'+esc(a)+'</td><td>'+money(b/100)+'</td></tr>').join('')+'</table>'+(t.measuredKm!==undefined?'<p>Distancia GPS: '+fmt(t.measuredKm)+' km. Distancia estimada en cortes breves: '+fmt(t.estimatedKm||0)+' km.</p>':'')+(t.manual?'<p>Ajuste manual del total a '+fmt(t.manual.km)+' km (antes: '+fmt(t.manual.previousKm)+' km). Motivo: '+esc(t.manual.reason)+'. Total facturable de distancia: '+fmt(t.km)+' km.</p>':'')+(t.gpsIncomplete?'<p>Hubo señal GPS incompleta. Las estimaciones usan líneas rectas y pueden omitir curvas o desvíos. Revisa la distancia y cualquier ajuste manual.</p>':'')+(t.recovered?'<p>Viaje recuperado: el intervalo con la página cerrada no está incluido en el tiempo.</p>':'')+'<p>Resumen orientativo del trayecto. No acredita el pago y no sustituye una factura. VoltFare no es un taxímetro homologado.</p>';
+  return '<h1>VoltFare · Recibo de trayecto</h1><p>Referencia: '+esc(t.id)+'</p>'+(t.tariff.issuer?'<p><strong>'+esc(t.tariff.issuer)+'</strong></p>':'')+(t.tariff.plate?'<p>Matrícula: '+esc(t.tariff.plate)+'</p>':'')+'<p>Inicio: '+esc(new Date(t.started).toLocaleString('es-ES'))+'<br>Fin: '+esc(new Date(t.ended).toLocaleString('es-ES'))+'</p><table>'+rows.map(([a,b])=>'<tr><td>'+esc(a)+'</td><td>'+money(b/100)+'</td></tr>').join('')+'</table>'+(t.measuredKm!==undefined?'<p>Distancia GPS: '+fmt(t.measuredKm)+' km. Distancia estimada en cortes breves: '+fmt(t.estimatedKm||0)+' km.</p>':'')+(t.manual?'<p>Ajuste manual del total a '+fmt(t.manual.km)+' km (antes: '+fmt(t.manual.previousKm)+' km). Motivo: '+esc(t.manual.reason)+'. Total facturable de distancia: '+fmt(t.km)+' km.</p>':'')+(t.gpsIncomplete?'<p>Hubo señal GPS incompleta. Las estimaciones usan líneas rectas y pueden omitir curvas o desvíos. Revisa la distancia y cualquier ajuste manual.</p>':'')+(t.timestampAdjusted?'<p>Se ha convertido el formato de hora GPS del navegador para calcular la distancia.</p>':'')+(t.recovered?'<p>Viaje recuperado: el intervalo con la página cerrada no está incluido en el tiempo.</p>':'')+'<p>Resumen orientativo del trayecto. No acredita el pago y no sustituye una factura. VoltFare no es un taxímetro homologado.</p>';
 }
 function showReceipt(t){selected=t;$('#receiptBody').innerHTML=receiptHTML(t);if(!$('#receipt').open)$('#receipt').showModal()}
 $('#printBtn').onclick=()=>window.print();
@@ -272,6 +294,7 @@ $('#downloadBtn').onclick=()=>{if(!selected)return;const html='<!doctype html><h
 window.addEventListener('beforeunload',e=>{if(trip){e.preventDefault();e.returnValue=''}});
 render();
 recover();
+
 
 
 
