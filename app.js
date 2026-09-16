@@ -91,7 +91,7 @@ function normalizePosition(p){
   }
   const result={coords:p?.coords,timestamp,rawTimestamp:raw,clockFormat,clockPending,clockCalibrated,clockIgnored};
   const age=Number.isFinite(timestamp)?Math.round((now-timestamp)/1000):null;
-  $('#gpsDiagnostics').textContent='VoltFare · GPS v11 | hora recibida: '+String(raw)+' | formato: '+clockFormat+' | desfase: '+(age===null?'desconocido':age+' s')+' | precisión: '+String(p?.coords?.accuracy)+' m';
+  $('#gpsDiagnostics').textContent='VoltFare · GPS v12 | hora recibida: '+String(raw)+' | formato: '+clockFormat+' | desfase: '+(age===null?'desconocido':age+' s')+' | precisión: '+String(p?.coords?.accuracy)+' m';
   return result;
 }
 function hasCoordinates(p){const c=p?.coords;return !!c&&Number.isFinite(c.latitude)&&Math.abs(c.latitude)<=90&&Number.isFinite(c.longitude)&&Math.abs(c.longitude)<=180}
@@ -166,7 +166,7 @@ function checkGps(){
 }
 function haversine(a,b){const rad=x=>x*Math.PI/180,lat=rad(b.latitude-a.latitude),lon=rad(b.longitude-a.longitude),h=Math.sin(lat/2)**2+Math.cos(rad(a.latitude))*Math.cos(rad(b.latitude))*Math.sin(lon/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(h)))}
 let lastFix=null,gap=false,waiting=false,lastTick=0;
-let offlineStatus='Preparando uso sin conexión';
+let offlineStatus='Conexión necesaria para abrir · cálculo local durante el viaje';
 const ACTIVE_KEY='voltfare.active.v2';
 function checkpoint(){
   if(!trip)return;
@@ -258,11 +258,6 @@ $('#adjustForm').addEventListener('submit',e=>{
 // Reload recovers the most recent one-second checkpoint.
 window.addEventListener('focus',()=>{if(state==='running')requestPosition()});
 window.addEventListener('online',render);window.addEventListener('offline',render);
-const compatibilityMode=typeof location!=='undefined'&&location.pathname.endsWith('/compatible.html');
-if(compatibilityMode){offlineStatus='Modo compatible · conexión necesaria para abrir';}
-else if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{offlineStatus='Aplicación disponible sin internet';render()}).catch(()=>{offlineStatus='Apertura sin internet no disponible';render()});
-}else offlineStatus='Este navegador no permite apertura sin internet';
 // Local-only GitHub Pages edition. No trip data is sent to a backend.
 const HISTORY_KEY='voltfare.pages.trips.v1';
 function readTrips(){

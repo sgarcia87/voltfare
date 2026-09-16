@@ -29,7 +29,7 @@ run('begin();pause()');await run('finish()');assert.ok(run('pending'));assert.eq
 storage.set('voltfare.pages.trips.v1',history);await run('finish()');
 assert.equal(run('state'),'idle');assert.match(run("receiptHTML({...selected,tariff:{...selected.tariff,issuer:'<script>'}})"),/&lt;script&gt;/);
 assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes('/api/trips'));
-const html=fs.readFileSync(new URL('index.html',import.meta.url),'utf8');assert.ok(html.includes('src="./app.js"'));assert.ok(html.includes('perderás el historial'));
+const html=fs.readFileSync(new URL('index.html',import.meta.url),'utf8');assert.ok(html.includes('src="./app.js?v=12"'));assert.ok(html.includes('perderás el historial'));
 console.log('OK: mínimos, guardado, recarga, reintentos, duplicados, corrupción, escape de recibos y rutas relativas.');
 
 
@@ -56,17 +56,14 @@ assert.equal(run('state'),'paused');assert.equal(run('trip.id'),activeId);assert
 await run('finish()');assert.match(run('receiptHTML(selected)'),/Odómetro &lt;test&gt;/);assert.match(run('receiptHTML(selected)'),/Distancia estimada/);
 assert.equal(storage.has('voltfare.active.v2'),false);
 console.log('OK: GPS short/long gaps, no double distance, invalid positions, pause, waiting, manual correction, active recovery and receipt audit.');
-// Exercise the offline shell at the real GitHub Pages subpath.
-const listeners={},cached=new Map();let installed;
-const scope='https://sgarcia87.github.io/voltfare/';
-const sw={URL,self:{location:{origin:'https://sgarcia87.github.io'},registration:{scope},clients:{claim:async()=>{}},addEventListener:(name,fn)=>listeners[name]=fn},caches:{open:async()=>({addAll:async paths=>{for(const path of paths)cached.set(new URL(path,scope).pathname,'cached:'+path)},match:async path=>cached.get(path)}),keys:async()=>[],delete:async()=>{}},fetch:async()=>{throw Error('Offline')}};
+// Retire only VoltFare caches, activate immediately, and leave other apps alone.
+const listeners={},deleted=[];let skipped=false,claimed=false,unregistered=false,task;
+const sw={self:{skipWaiting:async()=>{skipped=true},clients:{claim:async()=>{claimed=true}},registration:{unregister:async()=>{unregistered=true}},addEventListener:(name,fn)=>listeners[name]=fn},caches:{keys:async()=>['voltfare-shell-v11','another-app'],delete:async key=>deleted.push(key)}};
 vm.createContext(sw);vm.runInContext(fs.readFileSync(new URL('sw.js',import.meta.url),'utf8'),sw);
-listeners.install({waitUntil:p=>installed=p});await installed;
-for(const path of ['/voltfare/','/voltfare/index.html','/voltfare/app.js']){
-  let response;listeners.fetch({request:{method:'GET',url:'https://sgarcia87.github.io'+path},respondWith:p=>response=p});assert.match(await response,/^cached:/);
-}
-let intercepted=false;listeners.fetch({request:{method:'GET',url:'https://tile.openstreetmap.org/0/0/0.png'},respondWith:()=>intercepted=true});assert.equal(intercepted,false);
-console.log('OK: offline shell cache at /voltfare/; external map tiles not cached.');
+listeners.install({waitUntil:p=>task=p});await task;
+listeners.activate({waitUntil:p=>task=p});await task;
+assert.ok(skipped&&claimed&&unregistered);assert.deepEqual(deleted,['voltfare-shell-v11']);assert.equal(listeners.fetch,undefined);
+console.log('OK: legacy worker retires without intercepting requests or clearing other caches.');
 
 // The displayed paths update as GPS arrives, retain their first point after gaps,
 // and survive an active-trip reload without joining paused portions.
@@ -125,10 +122,11 @@ run('acceptPosition(normalizePosition({coords:{latitude:0,longitude:.1,accuracy:
 assert.equal(run('validPosition(normalizePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:12345}))'),false);
 console.log('OK: GPS clock units, stale data remains stale, live seconds accrue distance, duplicate timestamps do not.');
 
-assert.equal(fs.readFileSync(new URL('app-compat.js',import.meta.url),'utf8'),fs.readFileSync(new URL('app.js',import.meta.url),'utf8'));
+assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes('serviceWorker.register'));
+assert.ok(fs.readFileSync(new URL('compatible.html',import.meta.url),'utf8').includes("location.replace('./')"));
 assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes("addEventListener('beforeunload'"));
 assert.ok(!fs.readFileSync(new URL('app.js',import.meta.url),'utf8').includes("addEventListener('pagehide'"));
-console.log('OK: compatible and main engines match; no reload-blocking teardown handlers.');
+console.log('OK: one canonical engine; no reload-blocking teardown handlers.');
 
 // Regression: the Tesla diagnostic reported a non-calendar counter 19562025000.
 for(const increment of [1,1000,1000000,1000000000]){

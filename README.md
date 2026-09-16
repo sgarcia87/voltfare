@@ -100,7 +100,7 @@ Los valores iniciales de la aplicación son ejemplos configurables, no tarifas o
 
 Si no se puede guardar, el trayecto permanece pendiente para reintentarlo. **No cierres la pestaña mientras haya un guardado pendiente.**
 
-El mapa sí requiere servicios externos: Leaflet se sirve junto con la aplicación y las teselas se solicitan a OpenStreetMap. Estos proveedores reciben las solicitudes de recursos; las teselas solicitadas corresponden al área visualizada. La interfaz, el cálculo, el historial y los recibos pueden abrirse sin internet tras una primera visita con conexión y cuando aparezca «Aplicación disponible sin internet». El fondo cartográfico puede no estar disponible sin conexión; el trazado se dibuja sobre el mapa vacío. No se descargan mapas offline. La caché puede ser eliminada por el navegador; sin primera visita no hay apertura offline.
+El mapa sí requiere servicios externos: Leaflet se sirve junto con la aplicación y las teselas se solicitan a OpenStreetMap. Estos proveedores reciben las solicitudes de recursos; las teselas solicitadas corresponden al área visualizada. Para abrir o recargar la aplicación se necesita conexión. Una vez cargada, el cálculo, el GPS disponible, el historial y los recibos funcionan localmente aunque se pierda internet. El fondo cartográfico puede quedar sin cargar; no se descargan mapas offline.
 
 ## 📍 GPS y compatibilidad
 
@@ -135,9 +135,9 @@ Estos umbrales son filtros prácticos, no una garantía de exactitud. Una línea
 
 **Recuperación local:** el viaje activo se guarda cada segundo y al pausar o ajustar. Puede perderse hasta el último intervalo no guardado si el navegador se cierra abruptamente. Al recuperar, revisa los kilómetros antes de reanudar o finalizar. Si falla el almacenamiento se avisa; no cierres la página hasta resolverlo. Usa una sola pestaña para el viaje activo: la recuperación no coordina varias pestañas o dispositivos.
 
-### Acceso compatible
+### Una sola versión
 
-Si el navegador del vehículo se bloquea al recargar, abre [VoltFare en modo compatible](https://sgarcia87.github.io/voltfare/compatible.html). Usa entradas distintas para evitar la copia offline anterior y no registra un service worker. Comparte el historial y la copia del viaje activo con la web principal. Requiere conexión para abrirse; recupera el último guardado automático en pausa. Usa una sola pestaña de VoltFare.
+[Abre VoltFare](https://sgarcia87.github.io/voltfare/). La página principal usa el funcionamiento compatible con el navegador del coche, sin caché de apertura offline ni guardados al cerrar. La antigua dirección `compatible.html` redirige a la principal. Se conservan el historial, las tarifas y la recuperación del viaje guardado en pausa. Usa una sola pestaña de VoltFare.
 
 ## 🛠️ Ejecutar y desarrollar
 
@@ -157,7 +157,7 @@ Abre [localhost:8000](http://localhost:8000). El GPS necesita un contexto seguro
 | --- | --- |
 | [index.html](index.html) | Interfaz, estilos y carga del mapa. |
 | [app.js](app.js) | GPS, estimaciones, espera, recuperación local y recibos. |
-| [sw.js](sw.js) | Caché de la interfaz para apertura sin internet. |
+| [sw.js](sw.js) | Retira la antigua caché de la interfaz sin borrar datos de viajes. |
 | [test.mjs](test.mjs) | Comprobaciones de lógica con navegador y almacenamiento simulados. |
 | [.nojekyll](.nojekyll) | Publicación de archivos estáticos sin procesarlos con Jekyll. |
 
@@ -182,7 +182,7 @@ Si reportas un fallo, incluye el dispositivo, navegador, pasos para reproducirlo
 **VoltFare is a browser-based GPS fare estimator for VTC and private-hire trips, with a Tesla-oriented dashboard layout.** It provides a live map, configurable distance and time rates, a minimum fare, local trip history and downloadable trip receipts.
 
 - No account, application backend or build step required.
-- Offline app shell after a successful first online visit; maps still require internet.
+- Internet is required to open or reload the app. Once loaded, calculations and local saving continue without internet; map tiles require a connection.
 - Short GPS gaps can add explicitly labelled straight-line estimates; longer gaps need review.
 - Manual distance correction, separate waiting rates and paused trip recovery after reload.
 - Trip records stay in the current browser and are not synced across devices.

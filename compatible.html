@@ -1,160 +1,22 @@
 <!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#080b10">
-  <meta name="description" content="Estimador de trayectos VTC por GPS, diseñado para pantallas Tesla.">
-  <title>VoltFare — Modo compatible</title>
-  <link rel="stylesheet" href="./vendor/leaflet.css" crossorigin="anonymous">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23080b10'/%3E%3Cpath d='M35 7 16 36h14l-2 21 20-31H34z' fill='%237cf7c4'/%3E%3C/svg%3E">
-  <style>
-    :root{color-scheme:dark;--bg:#080b10;--panel:#11161d;--panel2:#171e27;--line:#28313d;--text:#f4f7f9;--muted:#929ca8;--mint:#7cf7c4;--cyan:#66d9ff;--red:#ff6474;--shadow:0 24px 70px rgba(0,0,0,.38)}
-    *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif} button,input{font:inherit}
-    body{min-height:100vh;background:radial-gradient(circle at 12% 0%,rgba(102,217,255,.1),transparent 27rem),radial-gradient(circle at 90% 80%,rgba(124,247,196,.08),transparent 30rem)}
-    .app{min-height:100vh;padding:clamp(18px,3vw,38px);display:grid;grid-template-rows:auto 1fr auto;gap:24px;max-width:1500px;margin:auto}
-    header{display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:13px;font-weight:750;letter-spacing:-.02em;font-size:1.15rem}.bolt{width:40px;height:40px;border-radius:12px;background:var(--mint);color:#07100c;display:grid;place-items:center;font-size:1.25rem;box-shadow:0 0 30px rgba(124,247,196,.16)}
-    .status{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:.9rem}.dot{width:9px;height:9px;border-radius:50%;background:#606b78}.dot.live{background:var(--mint);box-shadow:0 0 0 5px rgba(124,247,196,.1)}
-    .gear{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:13px;padding:11px 15px;cursor:pointer;min-height:46px}.gear:hover{background:var(--panel2)}
-    main{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.75fr);gap:24px;align-items:stretch}.meter,.side{border:1px solid var(--line);background:rgba(17,22,29,.86);backdrop-filter:blur(18px);border-radius:28px;box-shadow:var(--shadow)}
-    .meter{padding:clamp(24px,4vw,58px);display:flex;flex-direction:column;justify-content:space-between;min-height:530px}.eyebrow{text-transform:uppercase;letter-spacing:.15em;color:var(--muted);font-size:.78rem;font-weight:700}.price{font-variant-numeric:tabular-nums;font-size:clamp(5.2rem,14vw,11rem);letter-spacing:-.075em;line-height:.86;margin:32px 0 20px;font-weight:700}.currency{font-size:.32em;color:var(--mint);vertical-align:top;margin-left:.12em;letter-spacing:0}.estimate{color:var(--muted);font-size:1rem}
-    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:44px}.stat{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:18px}.stat span{display:block;color:var(--muted);font-size:.82rem;margin-bottom:8px}.stat strong{font-size:clamp(1.35rem,3vw,2rem);font-variant-numeric:tabular-nums}.stat small{color:var(--muted);font-weight:500}
-    .actions{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:22px}.primary,.finish{border:0;border-radius:17px;min-height:68px;font-weight:750;font-size:1.08rem;cursor:pointer}.primary{background:var(--mint);color:#06100c}.primary:hover{filter:brightness(.94)}.finish{background:transparent;color:var(--text);border:1px solid var(--line);padding:0 25px}.finish:disabled{opacity:.35;cursor:not-allowed}
-    .side{padding:26px;display:flex;flex-direction:column}.side h2{font-size:1rem;margin:0 0 22px}.row{display:flex;justify-content:space-between;gap:20px;padding:15px 0;border-bottom:1px solid var(--line);color:var(--muted)}.row strong{color:var(--text);font-variant-numeric:tabular-nums}.row.total{font-size:1.08rem;border:0;margin-top:4px}.row.total strong{color:var(--mint)}.gps-note{margin-top:auto;padding-top:24px;color:var(--muted);font-size:.82rem;line-height:1.5}.gps-note b{color:var(--text)}
-    footer{display:flex;justify-content:space-between;color:#6f7985;font-size:.75rem;gap:16px}
-    dialog{border:1px solid var(--line);border-radius:24px;background:#10151c;color:var(--text);padding:0;width:min(540px,calc(100vw - 32px));box-shadow:var(--shadow)}dialog::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(5px)}.modal{padding:28px}.modal-head{display:flex;justify-content:space-between;align-items:center}.modal h2{margin:0;font-size:1.3rem}.close{background:none;border:0;color:var(--muted);font-size:1.7rem;cursor:pointer}.form{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}.field label{display:block;color:var(--muted);font-size:.83rem;margin-bottom:8px}.field input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;background:#090d12;color:var(--text);font-size:1rem}.save{grid-column:1/-1;border:0;border-radius:14px;padding:15px;background:var(--mint);color:#06100c;font-weight:750;cursor:pointer}.wide{grid-column:1/-1}.inline{display:flex;gap:9px;align-items:center;color:var(--muted);font-size:.85rem}
-    .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:#f4f7f9;color:#080b10;padding:12px 18px;border-radius:12px;font-weight:650;transition:.25s;pointer-events:none;z-index:5}.toast.show{opacity:1;transform:translate(-50%,0)}
-    @media(max-width:850px){.app{padding:16px;gap:16px}main{grid-template-columns:1fr}.meter{min-height:490px}.side{min-height:320px}.price{font-size:clamp(4.7rem,24vw,8rem)}footer{flex-direction:column}.status-label{display:none}}
-    @media(max-width:500px){.stats{gap:8px}.stat{padding:14px 10px}.stat strong{font-size:1.25rem}.actions{grid-template-columns:1fr}.finish{min-height:56px}.form{grid-template-columns:1fr}.wide,.save{grid-column:auto}}
-    .control{display:flex;flex-direction:column;gap:7px;min-width:0}.control small,.map-help{color:var(--muted);font-size:.8rem;line-height:1.45;font-weight:400}.control button{width:100%}.quick-guide{display:flex;flex-wrap:wrap;gap:12px 28px;background:var(--panel);border:1px solid var(--line);padding:16px 22px;border-radius:18px;color:var(--muted);font-size:.9rem}.quick-guide strong{color:var(--mint)}.journey-help{color:var(--mint);line-height:1.5;margin:22px 0 12px}.secondary-control{margin-top:20px}.simple-help{margin-top:22px;color:var(--muted);font-size:.85rem;line-height:1.5}.simple-help summary{cursor:pointer;color:var(--text);padding:10px 0}.simple-help p{margin:8px 0 14px}.map-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}.map-controls button{font-size:.8rem;padding:10px}.map-legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0 0;font-size:.75rem;color:var(--muted)}.line{display:inline-block;width:24px;border-top:4px solid #0ba77d;margin-right:6px;vertical-align:middle}.line.estimated{border-color:#e9a43b;border-top-style:dashed}header .control small{max-width:200px}header .status{flex-wrap:wrap}.app{grid-template-rows:auto auto 1fr auto}[hidden]{display:none!important}button:focus-visible,summary:focus-visible{outline:3px solid var(--cyan);outline-offset:4px}
-    @media(max-width:500px){.quick-guide{gap:8px;flex-direction:column}.map-controls{grid-template-columns:1fr}.status-label{display:inline}header{align-items:flex-start}}
-  </style>
-</head>
-<body>
-  <div class="app">
-    <header>
-      <div class="brand"><span class="bolt">ϟ</span><span>VoltFare <small style="font-size:11px;color:var(--muted)">v11 · compatible</small></span></div>
-      <div class="control"><button class="gear" id="historyBtn" aria-describedby="historyHelp">Ver viajes y recibos</button><small id="historyHelp">Consulta o descarga un viaje terminado.</small></div>
-      <div class="status"><span id="dot" class="dot"></span><span id="statusText" class="status-label">Listo para iniciar</span><div class="control"><button class="gear" id="settingsBtn" aria-describedby="settingsHelp">Configurar precios</button><small id="settingsHelp">Elige lo que cobrarás antes de empezar.</small></div></div>
-      <button class="gear" id="helpBtn">Ayuda</button>
-    </header>
-    <main>
-      <section class="meter" aria-label="Estimador de trayecto">
-        <div>
-          <div class="eyebrow">Importe estimado</div>
-          <div class="price"><span id="amount">0,00</span><span class="currency">€</span></div>
-          <div class="estimate" id="rateLabel">Incluye inicio · 1,35 €/km · 0,28 €/min</div>
-        </div>
-        <div>
-          <div class="stats">
-            <div class="stat"><span>Distancia</span><strong id="distance">0,00 <small>km</small></strong></div>
-            <div class="stat"><span>Duración</span><strong id="duration">00:00</strong></div>
-            <div class="stat"><span>Velocidad</span><strong id="speed">0 <small>km/h</small></strong></div>
-          </div>
-          <p id="journeyHelp" class="journey-help" role="status">Todo listo. Pulsa «Empezar viaje» al salir.</p>
-          <div class="actions">
-            <div class="control"><button id="mainBtn" class="primary" aria-describedby="mainHelp">Empezar viaje</button><small id="mainHelp">Empieza a sumar kilómetros e importe.</small></div>
-            <div class="control"><button id="finishBtn" class="finish" aria-describedby="finishHelp" disabled>Terminar y guardar</button><small id="finishHelp">Finaliza el viaje y abre su recibo.</small></div>
-          </div>
-          <div class="secondary-bar"><button class="gear" id="detailsBtn">Desglose y ajustes</button><div id="waitControl" class="control secondary-control" hidden><button id="waitBtn" class="gear" aria-describedby="waitHelp" disabled>Cobrar espera</button><small id="waitHelp">Para cuando estás esperando al cliente.</small></div></div>
-
-
-        </div>
-      </section>
-      <aside class="side">
-        <h2>Tu recorrido en directo</h2><div id="map" aria-label="Mapa del recorrido"></div>
-        <p id="gpsInfo" role="status">El mapa se centrará al recibir ubicación.</p>
-        <div class="map-legend"><span><i class="line measured"></i>Recorrido GPS</span><span><i class="line estimated"></i>Tramo estimado</span></div>
-        <p class="map-help">La línea crece al avanzar. El punto indica tu posición. En una pausa no se dibuja recorrido.</p>
-        <div class="map-controls"><div class="control"><button class="gear" id="locateBtn" aria-describedby="locateHelp">Centrar mi posición</button><small id="locateHelp">Vuelve a mostrar dónde estás.</small></div><div class="control"><button class="gear" id="routeBtn" aria-describedby="routeHelp" disabled>Ver todo el recorrido</button><small id="routeHelp">Aleja el mapa para ver el viaje completo.</small></div></div>
-      </aside>
-    </main>
-    <footer><span>Estimador para servicios VTC · No es un taxímetro homologado</span><span>Los importes son orientativos</span></footer>
-  </div>
-
-  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <details class="simple-help"><summary>Datos GPS</summary><p id="gpsDiagnostics" style="overflow-wrap:anywhere">VoltFare · GPS v11 · Todavía no se ha recibido ubicación.</p></details><p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
-        <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
-        <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
-        <div class="row"><span>Tiempo</span><strong id="timeLine">0,00 €</strong></div>
-        <div class="row"><span>Suplementos</span><strong id="extraLine">0,00 €</strong></div>
-        <div class="row"><span>Ajuste al mínimo</span><strong id="minLine">0,00 €</strong></div>
-        <div class="row total"><span>Total estimado</span><strong id="totalLine">0,00 €</strong></div>
-        <p class="gps-note"><b>Medición GPS del navegador.</b><br>La precisión depende de la señal y del dispositivo. Mantén esta pestaña visible durante el recorrido.</p>
-          <details id="extraControls" class="simple-help"><summary>Corregir los kilómetros</summary><p>Úsalo si faltan kilómetros por un corte de GPS. Pausa primero el viaje.</p><div class="control"><button id="adjustBtn" class="gear" aria-describedby="adjustHelp" disabled>Corregir distancia total</button><small id="adjustHelp">Introduce el total del cuentakilómetros. Sustituye la distancia actual.</small></div></details></div></dialog>
-  <dialog id="help"><div class="modal"><div class="modal-head"><h2>Cómo usar VoltFare</h2><button class="close" data-close="help" aria-label="Cerrar">×</button></div>    <section class="quick-guide" aria-label="Cómo empezar"><strong>Tu viaje, en 3 pasos</strong><span>1. Configura los precios</span><span>2. Empieza el viaje</span><span>3. Termina y guarda el recibo</span></section>
-<dl class="help-list"><dt>Configurar precios</dt><dd>Elige la tarifa antes de empezar. Queda fija durante el viaje.</dd><dt>Empezar / continuar viaje</dt><dd>Suma kilómetros y tiempo según tu tarifa.</dd><dt>Pausar sin cobrar</dt><dd>Detiene el tiempo y la distancia hasta que continúes.</dd><dt>Cobrar espera</dt><dd>Aplica solo el precio por minuto de espera. No suma kilómetros.</dd><dt>Terminar y guardar</dt><dd>Guarda el viaje y abre el recibo para descargarlo o imprimirlo.</dd><dt>Desglose y ajustes</dt><dd>Muestra los conceptos del precio y permite corregir la distancia si el viaje está pausado.</dd><dt>El mapa</dt><dd>El mapa sigue tu posición al moverte. Un punto y círculo ámbar indican poca precisión: esa posición se muestra, pero no añade kilómetros. La línea verde sigue el GPS; la línea ámbar discontinua indica un tramo estimado. «Centrar mi posición» sigue tu ubicación. «Ver todo el recorrido» muestra el viaje completo.</dd><dt>Ver viajes y recibos</dt><dd>Abre los viajes que has guardado en este navegador.</dd></dl></div></dialog>
-  <dialog id="settings">
-    <form method="dialog" class="modal" id="settingsForm">
-      <div class="modal-head"><h2>Configurar precios</h2><button class="close" type="button" data-close="settings" aria-label="Cerrar">×</button></div>
-      <div class="form">
-        <div class="field"><label for="base">Precio al empezar (€)</label><input id="base" type="number" min="0" step="0.01" value="3.50"></div>
-        <div class="field"><label for="perKm">Precio por km (€)</label><input id="perKm" type="number" min="0" step="0.01" value="1.35"></div>
-        <div class="field"><label for="perMin">Precio por minuto (€)</label><input id="perMin" type="number" min="0" step="0.01" value="0.28"></div>
-        <div class="field"><label for="waitRate">Precio por minuto de espera (€)</label><input id="waitRate" type="number" min="0" max="10000" step="0.01" value="0.28" required><small>Solo se aplica al pulsar «Cobrar espera». Sustituye el precio por minuto de viaje.</small></div><div class="field"><label for="extra">Suplementos (€)</label><input id="extra" type="number" min="0" step="0.01" value="0"></div>
-        <div class="field wide"><label for="minimum">Precio mínimo total (€)</label><input id="minimum" type="number" min="0" max="10000" step="0.01" value="0"><small>0 desactiva el mínimo. Se aplica al total, incluidos suplementos.</small></div>
-        <div class="field"><label for="issuer">Nombre / empresa (opcional)</label><input id="issuer" maxlength="120"></div>
-        <div class="field"><label for="plate">Matrícula (opcional)</label><input id="plate" maxlength="30"></div>
-        <label class="inline wide"><input id="countTime" type="checkbox" checked> Cobrar también los minutos de viaje</label>
-        <button class="save" value="default">Guardar precios</button>
-      </div>
-    </form>
-  </dialog>
-  <dialog id="adjustment"><form class="modal" id="adjustForm"><div class="modal-head"><h2>Corregir distancia total</h2><button type="button" class="close" data-close="adjustment" aria-label="Cerrar">×</button></div><p>Introduce la distancia TOTAL del viaje, por ejemplo la diferencia del cuentakilómetros. Sustituye el total actual; no se suma. El recibo conservará el motivo.</p><div class="form"><div class="field"><label for="manualKm">Total del viaje (km)</label><input id="manualKm" type="number" min="0" max="100000" step="0.001" required></div><div class="field wide"><label for="manualReason">Motivo / lectura del cuentakilómetros</label><input id="manualReason" maxlength="200" required></div><button class="save">Aplicar ajuste</button></div></form></dialog>
-  <div class="toast" id="toast" role="status"></div>
-  <dialog id="history"><div class="modal"><div class="modal-head"><h2>Historial de trayectos</h2><button class="close" data-close="history" aria-label="Cerrar">×</button></div><p>Guardado solo en este navegador y dispositivo. Si borras sus datos, perderás el historial. Descarga los recibos que quieras conservar.</p><button class="gear" id="clearHistoryBtn" style="color:var(--red);margin-bottom:16px">Borrar todo el historial</button><div id="historyList"></div><button class="gear" id="moreBtn" hidden>Cargar más</button></div></dialog>
-  <dialog id="clearHistoryConfirm"><div class="modal"><div class="modal-head"><h2>¿Borrar todos los viajes guardados?</h2><button class="close" data-close="clearHistoryConfirm" aria-label="Cerrar">×</button></div><p>Se eliminarán de este navegador todos los trayectos finalizados y sus recibos. No se puede deshacer. Descarga antes los recibos que quieras conservar.</p><p>El viaje en curso y los precios configurados se mantienen.</p><div class="receipt-actions"><button class="gear" data-close="clearHistoryConfirm">Cancelar</button><button class="gear" id="confirmClearHistory" style="color:var(--red)">Sí, borrar historial</button></div></div></dialog>
-  <dialog id="receipt"><div class="modal"><div class="modal-head no-print"><h2>Recibo de trayecto</h2><button class="close" data-close="receipt" aria-label="Cerrar">×</button></div><article id="receiptBody"></article><div class="receipt-actions no-print"><button class="primary" id="printBtn">Imprimir / guardar PDF</button><button class="gear" id="downloadBtn">Descargar recibo HTML</button></div><p class="no-print">«Imprimir / guardar PDF» abre la impresión del navegador. «Descargar recibo HTML» guarda un archivo que puedes abrir después sin internet.</p></div></dialog>
-  <style>
-    #map{height:320px;min-height:320px;border-radius:16px;background:#202b35;z-index:0}
-    #connectionInfo,#qualityInfo{font-size:13px;color:var(--mint);line-height:1.5}.actions{margin-top:12px}#gpsInfo{font-size:14px;color:var(--muted);line-height:1.4;margin:10px 0}
-    #locateBtn{margin-bottom:0} .side h2{margin-top:4px;margin-bottom:8px}.side .row{padding:10px 0}
-    dialog{max-height:90vh;overflow:auto}#history{width:min(800px,calc(100vw - 32px))}#receipt{width:min(650px,calc(100vw - 32px))}
-    .trip-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0;border-bottom:1px solid var(--line)}
-    .trip-row small{display:block;color:var(--muted);margin-top:6px} .receipt-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:25px}.receipt-actions .primary{padding:12px 20px;min-height:50px}
-    #receiptBody{line-height:1.6;overflow-wrap:anywhere}#receiptBody h1{font-size:1.6rem}#receiptBody table{width:100%;border-collapse:collapse}#receiptBody td{padding:8px 0;border-bottom:1px solid var(--line)}#receiptBody td:last-child{text-align:right}
-    .field small{display:block;line-height:1.5;color:var(--muted);margin-top:8px}button:disabled{opacity:.45;cursor:not-allowed}header{flex-wrap:wrap}.price{font-size:clamp(3rem,11vw,9rem)}.meter{min-width:0}
-    @media print{body{background:white!important;color:black!important}.app,#toast,#history,#settings,#adjustment,.no-print{display:none!important}dialog#receipt{position:static;display:block;border:0;background:white;color:black;max-width:none;width:100%;max-height:none;overflow:visible;box-shadow:none}dialog::backdrop{background:transparent}#receiptBody td{border-color:#ccc}.modal{padding:0}@page{margin:18mm}}
-  </style>
-
-  <style>
-    /* The dashboard fits the viewport; longer explanations live in dialogs. */
-    html,body{min-height:0}body{height:100vh;height:100dvh}
-    .app{height:100vh;height:100dvh;min-height:0;max-width:1800px;padding:16px 22px;gap:12px;grid-template-rows:auto minmax(0,1fr) auto}
-    header{flex-wrap:nowrap;gap:12px}.brand{margin-right:auto}.status{gap:12px;flex-wrap:nowrap!important}.status-label{display:inline}
-    header .control small{display:none}header .gear{font-size:.85rem;min-height:42px;padding:9px 14px}
-    main{min-height:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
-    .meter,.side{min-height:0;min-width:0;border-radius:22px;padding:22px}
-    .meter{justify-content:space-between;gap:12px}.meter>div{min-height:0}
-    .price{font-size:clamp(3.5rem,12vh,8rem);line-height:1.05;margin:12px 0;white-space:nowrap}.currency{font-size:.35em}
-    .eyebrow{font-size:.75rem}.estimate{font-size:.85rem;line-height:1.4}
-    .stats{gap:10px}.stat{padding:12px}.stat strong{font-size:1.5rem}.stat span{font-size:.75rem}
-    .journey-help{font-size:.85rem;line-height:1.4;margin:12px 0;min-height:2.8em}
-    .actions{grid-template-columns:1fr 1fr;gap:10px;margin-top:0}.primary,.finish{min-height:52px;font-size:1rem;padding:10px}
-    .actions .control small{font-size:.75rem;line-height:1.3}.control{gap:5px}
-    .secondary-bar{display:flex;align-items:flex-start;gap:12px;margin-top:12px}.secondary-bar>.gear,.secondary-bar>.control{flex:1}.secondary-control{margin:0}.secondary-control small{display:none}.secondary-bar .gear{min-height:44px;font-size:.85rem;padding:9px}
-    .side{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;gap:8px}.side h2{margin:0;font-size:.95rem}
-    #map{height:100%;min-height:0;border-radius:14px}#gpsInfo{margin:0;font-size:.8rem;line-height:1.35;min-height:2.7em}
-    .map-help{display:none}.map-legend{margin:0;font-size:.7rem}.map-controls{margin:0;gap:10px}.map-controls .control small{display:none}.map-controls .gear{min-height:42px}
-    footer{font-size:.65rem;line-height:1.3;flex-direction:row}.gps-note{padding-top:12px}
-    #details .row{padding:10px 0}#details h2{margin-top:16px}#details .modal-head h2{margin:0}.help-list{font-size:.9rem;line-height:1.5}.help-list dt{font-weight:700;margin-top:12px}.help-list dd{color:var(--muted);margin:3px 0 0}.quick-guide{margin-top:18px;gap:8px;flex-direction:column}
-    @media(max-height:720px) and (min-width:701px){.app{padding:10px 16px;gap:8px}.meter,.side{padding:16px}.price{font-size:clamp(3rem,11vh,5.5rem);margin:6px 0}.stats .stat{padding:9px}.journey-help{margin:8px 0}.actions .control small{display:none}.secondary-bar{margin-top:8px}.meter{gap:6px}.primary,.finish{min-height:46px}.stat strong{font-size:1.25rem}}
-    @media(max-width:700px){.app{padding:10px;gap:8px}header{display:grid;grid-template-columns:1fr auto auto;gap:6px}.brand{font-size:1rem}.bolt{width:28px;height:28px;font-size:1rem}header>.control{grid-column:2}header .status{grid-row:2;grid-column:1/-1;justify-content:space-between}header>#helpBtn{grid-row:1;grid-column:3}header .gear{font-size:.72rem;min-height:34px;padding:6px 9px}.status{font-size:.75rem}main{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:8px}.meter,.side{padding:12px;border-radius:16px}.meter{gap:8px}.price{font-size:2.8rem;margin:2px 0}.eyebrow{font-size:.6rem}.estimate{font-size:.7rem}.stats{gap:6px}.stat{padding:7px 9px}.stat span{font-size:.65rem}.stat strong{font-size:1.05rem}.journey-help{font-size:.72rem;min-height:0;margin:6px 0}.primary,.finish{min-height:42px;font-size:.82rem}.actions .control small{display:none}.secondary-bar{margin-top:6px;gap:8px}.secondary-bar .gear{min-height:34px;font-size:.75rem;padding:6px}.side{gap:5px}.side h2{font-size:.8rem}#gpsInfo{font-size:.65rem;min-height:0}.map-legend{font-size:.6rem}.map-controls .gear{font-size:.7rem;min-height:34px;padding:6px}.map-controls{grid-template-columns:1fr 1fr}footer{display:none}}
-    @media print{body,.app{height:auto}#details,#help{display:none!important}}
-  </style>
-  <style>
-    #gpsInfo{height:4.05em;min-height:4.05em;max-height:4.05em;line-height:1.35;overflow:auto;overflow-wrap:anywhere;scrollbar-gutter:stable}
-    @media print{#clearHistoryConfirm{display:none!important}}
-  </style>
-  <script src="./vendor/leaflet.js" crossorigin="anonymous"></script>
-  <script src="./app-compat.js?v=11"></script>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VoltFare</title></head>
+<body><p>VoltFare tiene una única página principal. <a href="./">Abrir VoltFare</a></p>
+<script>
+(async function () {
+  // Remove only VoltFare's former worker and shell, keeping all local trip data.
+  try {
+    if ('serviceWorker' in navigator) {
+      const scope = new URL('./', location.href).href;
+      for (const registration of await navigator.serviceWorker.getRegistrations()) {
+        if (registration.scope === scope) await registration.unregister();
+      }
+    }
+    if ('caches' in window) {
+      for (const key of await caches.keys()) {
+        if (key.startsWith('voltfare-shell-')) await caches.delete(key);
+      }
+    }
+  } catch (error) { /* Navigation also works when browser storage is restricted. */ }
+  location.replace('./');
+})();
+</script></body></html>
