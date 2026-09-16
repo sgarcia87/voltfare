@@ -51,7 +51,7 @@ Está diseñada con lectura grande, modo oscuro y disposición horizontal para l
 5. Al terminar, pulsa **Terminar y guardar** y confirma el guardado. Se abrirá el recibo.
 6. Recupera los servicios anteriores desde **Ver viajes y recibos**.
 
-**Configura y manipula la aplicación con el vehículo detenido.** Mantén la pestaña visible durante el viaje. Se guarda una copia local cada segundo; al volver a abrir se recupera en pausa, sin cobrar automáticamente el intervalo con la página cerrada.
+**Configura y manipula la aplicación con el vehículo detenido.** Mantén la pestaña visible durante el viaje. La recarga no abre una confirmación de salida. Se guarda una copia local cada segundo; al volver a abrir se recupera en pausa, sin cobrar automáticamente el intervalo con la página cerrada.
 
 ### Controles fáciles de entender
 
@@ -99,7 +99,7 @@ Los valores iniciales de la aplicación son ejemplos configurables, no tarifas o
 
 Si no se puede guardar, el trayecto permanece pendiente para reintentarlo. **No cierres la pestaña mientras haya un guardado pendiente.**
 
-El mapa sí requiere servicios externos: Leaflet se carga desde unpkg.com y las teselas desde OpenStreetMap. Estos proveedores reciben las solicitudes de recursos; las teselas solicitadas corresponden al área visualizada. La interfaz, el cálculo, el historial y los recibos pueden abrirse sin internet tras una primera visita con conexión y cuando aparezca «Aplicación disponible sin internet». El mapa y sus recursos externos pueden no estar disponibles. No se descargan mapas offline. La caché puede ser eliminada por el navegador; sin primera visita no hay apertura offline.
+El mapa sí requiere servicios externos: Leaflet se sirve junto con la aplicación y las teselas se solicitan a OpenStreetMap. Estos proveedores reciben las solicitudes de recursos; las teselas solicitadas corresponden al área visualizada. La interfaz, el cálculo, el historial y los recibos pueden abrirse sin internet tras una primera visita con conexión y cuando aparezca «Aplicación disponible sin internet». El fondo cartográfico puede no estar disponible sin conexión; el trazado se dibuja sobre el mapa vacío. No se descargan mapas offline. La caché puede ser eliminada por el navegador; sin primera visita no hay apertura offline.
 
 ## 📍 GPS y compatibilidad
 
@@ -198,6 +198,7 @@ Looking for a **Tesla fare calculator**, **GPS trip cost calculator** or **brows
 Creado por [Sergi Garcia · sgarcia87](https://github.com/sgarcia87)
 
 </div>
+
 
 
 

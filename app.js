@@ -59,7 +59,7 @@ function normalizePosition(p){
   }
   const result={coords:p?.coords,timestamp,rawTimestamp:raw,clockFormat};
   const age=Number.isFinite(timestamp)?Math.round((now-timestamp)/1000):null;
-  $('#gpsDiagnostics').textContent='VoltFare · GPS v7 | hora recibida: '+String(raw)+' | formato: '+clockFormat+' | desfase: '+(age===null?'desconocido':age+' s')+' | precisión: '+String(p?.coords?.accuracy)+' m';
+  $('#gpsDiagnostics').textContent='VoltFare · GPS v8 | hora recibida: '+String(raw)+' | formato: '+clockFormat+' | desfase: '+(age===null?'desconocido':age+' s')+' | precisión: '+String(p?.coords?.accuracy)+' m';
   return result;
 }
 function hasCoordinates(p){const c=p?.coords;return !!c&&Number.isFinite(c.latitude)&&Math.abs(c.latitude)<=90&&Number.isFinite(c.longitude)&&Math.abs(c.longitude)<=180}
@@ -291,9 +291,10 @@ function receiptHTML(t){
 function showReceipt(t){selected=t;$('#receiptBody').innerHTML=receiptHTML(t);if(!$('#receipt').open)$('#receipt').showModal()}
 $('#printBtn').onclick=()=>window.print();
 $('#downloadBtn').onclick=()=>{if(!selected)return;const html='<!doctype html><html lang="es"><meta charset="utf-8"><title>Recibo VoltFare</title><style>body{font:16px system-ui;max-width:720px;margin:40px auto;padding:20px;line-height:1.6}table{width:100%;border-collapse:collapse}td{padding:10px;border-bottom:1px solid #ddd}td:last-child{text-align:right}p{overflow-wrap:anywhere}@media print{body{margin:0}}</style>'+receiptHTML(selected)+'</html>';const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='VoltFare-'+selected.id+'.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)};
-window.addEventListener('beforeunload',e=>{if(trip){e.preventDefault();e.returnValue=''}});
+// Save through pagehide and periodic checkpoints; do not block reload with a native dialog.
 render();
 recover();
+
 
 
 

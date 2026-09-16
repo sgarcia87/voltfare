@@ -1,5 +1,5 @@
-const CACHE='voltfare-shell-v7';
-const SHELL=['./','./index.html','./app.js'];
+const CACHE='voltfare-shell-v8';
+const SHELL=['./','./index.html','./app.js','./vendor/leaflet.js','./vendor/leaflet.css'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
   for(const key of await caches.keys())if(key.startsWith('voltfare-shell-')&&key!==CACHE)await caches.delete(key);
@@ -11,6 +11,7 @@ self.addEventListener('fetch',event=>{
   if(!SHELL.some(path=>new URL(path,self.registration.scope).pathname===url.pathname))return;
   event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(url.pathname))||fetch(event.request)));
 });
+
 
 
 

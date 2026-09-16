@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#080b10">
   <meta name="description" content="Estimador de trayectos VTC por GPS, diseñado para pantallas Tesla.">
   <title>VoltFare — Estimador VTC</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="./vendor/leaflet.css" crossorigin="anonymous">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23080b10'/%3E%3Cpath d='M35 7 16 36h14l-2 21 20-31H34z' fill='%237cf7c4'/%3E%3C/svg%3E">
   <style>
     :root{color-scheme:dark;--bg:#080b10;--panel:#11161d;--panel2:#171e27;--line:#28313d;--text:#f4f7f9;--muted:#929ca8;--mint:#7cf7c4;--cyan:#66d9ff;--red:#ff6474;--shadow:0 24px 70px rgba(0,0,0,.38)}
@@ -72,7 +72,7 @@
     <footer><span>Estimador para servicios VTC · No es un taxímetro homologado</span><span>Los importes son orientativos</span></footer>
   </div>
 
-  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <details class="simple-help"><summary>Datos GPS</summary><p id="gpsDiagnostics" style="overflow-wrap:anywhere">VoltFare · GPS v7 · Todavía no se ha recibido ubicación.</p></details><p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
+  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <details class="simple-help"><summary>Datos GPS</summary><p id="gpsDiagnostics" style="overflow-wrap:anywhere">VoltFare · GPS v8 · Todavía no se ha recibido ubicación.</p></details><p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
         <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
         <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
         <div class="row"><span>Tiempo</span><strong id="timeLine">0,00 €</strong></div>
@@ -140,10 +140,11 @@
     @media(max-width:700px){.app{padding:10px;gap:8px}header{display:grid;grid-template-columns:1fr auto auto;gap:6px}.brand{font-size:1rem}.bolt{width:28px;height:28px;font-size:1rem}header>.control{grid-column:2}header .status{grid-row:2;grid-column:1/-1;justify-content:space-between}header>#helpBtn{grid-row:1;grid-column:3}header .gear{font-size:.72rem;min-height:34px;padding:6px 9px}.status{font-size:.75rem}main{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:8px}.meter,.side{padding:12px;border-radius:16px}.meter{gap:8px}.price{font-size:2.8rem;margin:2px 0}.eyebrow{font-size:.6rem}.estimate{font-size:.7rem}.stats{gap:6px}.stat{padding:7px 9px}.stat span{font-size:.65rem}.stat strong{font-size:1.05rem}.journey-help{font-size:.72rem;min-height:0;margin:6px 0}.primary,.finish{min-height:42px;font-size:.82rem}.actions .control small{display:none}.secondary-bar{margin-top:6px;gap:8px}.secondary-bar .gear{min-height:34px;font-size:.75rem;padding:6px}.side{gap:5px}.side h2{font-size:.8rem}#gpsInfo{font-size:.65rem;min-height:0}.map-legend{font-size:.6rem}.map-controls .gear{font-size:.7rem;min-height:34px;padding:6px}.map-controls{grid-template-columns:1fr 1fr}footer{display:none}}
     @media print{body,.app{height:auto}#details,#help{display:none!important}}
   </style>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <script src="./vendor/leaflet.js" crossorigin="anonymous"></script>
   <script src="./app.js"></script>
 </body>
 </html>
+
 
 
 
