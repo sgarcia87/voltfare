@@ -47,16 +47,20 @@ let deviceClock=null;
 function synchronizeDeviceClock(raw,now){
   const mono=typeof performance!=='undefined'?performance.now():now;
   const seed=()=>{deviceClock={raw,mono,originRaw:raw,originMono:mono,originEpoch:now,count:1,scales:[1,.001,.000001,1000],scale:null};return {timestamp:NaN,clockPending:true,clockFormat:'comprobando contador interno (1/3)'}};
+  if(deviceClock&&deviceClock.scale&&raw<deviceClock.raw&&(deviceClock.raw-raw)*deviceClock.scale<=15000)return {timestamp:deviceClock.originEpoch+(raw-deviceClock.originRaw)*deviceClock.scale,clockIgnored:true,clockCalibrated:true,clockFormat:'contador interno · muestra fuera de orden'};
   if(!deviceClock||raw<deviceClock.raw||mono-deviceClock.mono>30000)return seed();
   const c=deviceClock,dt=mono-c.mono,dr=raw-c.raw;
   if(dr===0)return c.scale?{timestamp:c.originEpoch+(raw-c.originRaw)*c.scale,clockCalibrated:true,clockFormat:'contador interno sincronizado'}:{timestamp:NaN,clockPending:true,clockFormat:'esperando que avance el contador interno'};
-  if(dt<500)return {timestamp:NaN,clockPending:true,clockFormat:'comprobando contador interno'};
   const matches=scale=>Math.abs(dr*scale-dt)<=Math.max(250,dt*.25);
   if(c.scale){
-    if(!matches(c.scale)||Math.abs((raw-c.originRaw)*c.scale-(mono-c.originMono))>2000)return seed();
+    // Once calibrated, use source time rather than callback spacing: browsers may
+    // deliver several updates together. Keep the original anchor (no restamping).
+    const lag=(mono-c.originMono)-(raw-c.originRaw)*c.scale;
+    if(lag < -1000 || lag > 15000)return seed();
     c.raw=raw;c.mono=mono;
     return {timestamp:c.originEpoch+(raw-c.originRaw)*c.scale,clockCalibrated:true,clockFormat:'contador interno sincronizado'};
   }
+  if(dt<500)return {timestamp:NaN,clockPending:true,clockFormat:'comprobando contador interno'};
   c.scales=c.scales.filter(matches);
   if(!c.scales.length)return seed();
   c.raw=raw;c.mono=mono;c.count++;
@@ -69,7 +73,7 @@ function synchronizeDeviceClock(raw,now){
 function normalizePosition(p){
   // Standard geolocation uses epoch milliseconds. Some embedded providers use
   // seconds, microseconds or nanoseconds: convert units, never replace with now.
-  const raw=p?.timestamp,now=Date.now();let timestamp=raw,clockFormat='milisegundos',clockPending=false,clockCalibrated=false;
+  const raw=p?.timestamp,now=Date.now();let timestamp=raw,clockFormat='milisegundos',clockPending=false,clockCalibrated=false,clockIgnored=false;
   const epoch=t=>Number.isFinite(t)&&t>=946684800000&&t<4102444800000;
   if(Number.isFinite(raw)&&raw>0&&!epoch(raw)){
     const candidates=[[raw*1000,'segundos'],[raw/1000,'microsegundos'],[raw/1000000,'nanosegundos']].filter(([t])=>epoch(t));
@@ -83,11 +87,11 @@ function normalizePosition(p){
   // Unknown non-calendar counters require a cadence consistent with reception.
   // Calendar timestamps, even stale ones, are never recalibrated to the present.
   if(Number.isFinite(raw)&&raw>0&&!epoch(timestamp)&&hasCoordinates(p)&&Number.isFinite(p.coords.accuracy)&&p.coords.accuracy>=0){
-    ({timestamp,clockFormat,clockPending=false,clockCalibrated=false}=synchronizeDeviceClock(raw,now));
+    ({timestamp,clockFormat,clockPending=false,clockCalibrated=false,clockIgnored=false}=synchronizeDeviceClock(raw,now));
   }
-  const result={coords:p?.coords,timestamp,rawTimestamp:raw,clockFormat,clockPending,clockCalibrated};
+  const result={coords:p?.coords,timestamp,rawTimestamp:raw,clockFormat,clockPending,clockCalibrated,clockIgnored};
   const age=Number.isFinite(timestamp)?Math.round((now-timestamp)/1000):null;
-  $('#gpsDiagnostics').textContent='VoltFare · GPS v10 | hora recibida: '+String(raw)+' | formato: '+clockFormat+' | desfase: '+(age===null?'desconocido':age+' s')+' | precisión: '+String(p?.coords?.accuracy)+' m';
+  $('#gpsDiagnostics').textContent='VoltFare · GPS v11 | hora recibida: '+String(raw)+' | formato: '+clockFormat+' | desfase: '+(age===null?'desconocido':age+' s')+' | precisión: '+String(p?.coords?.accuracy)+' m';
   return result;
 }
 function hasCoordinates(p){const c=p?.coords;return !!c&&Number.isFinite(c.latitude)&&Math.abs(c.latitude)<=90&&Number.isFinite(c.longitude)&&Math.abs(c.longitude)<=180}
@@ -110,7 +114,7 @@ function showReference(p){
     const t=Number.isFinite(p.timestamp)&&p.timestamp>0&&p.timestamp<=Date.now()+1000?p.timestamp:0;
     showPosition(p.coords,t,true);
   }
-  const message=positionIssue(p)+' Buscando una posición actual; no se añaden kilómetros.';
+  const message=p.clockPending?'Sincronizando reloj GPS… Esperando posiciones válidas para continuar la distancia.':positionIssue(p)+' Buscando una posición actual; no se añaden kilómetros.';
   lastGpsIssue=message;
   if(state==='running')loseGps(message);else $('#gpsInfo').textContent=message;
   render();
@@ -177,6 +181,7 @@ function tick(){
 function stopGps(){stopLocateWatch();deviceClock=null;generation++;if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);watchId=null;lastPos=null;lastFix=null;gap=false;speed=null;positionRequest=null}
 function loseGps(message){gap=true;trip.gpsIncomplete=true;speed=null;$('#gpsInfo').textContent=message}
 function acceptPosition(p){
+  if(p.clockIgnored)return;
   const c=p.coords,now=Date.now();
   if(!validPosition(p)){showReference(p);return}
   if(c.accuracy>50){
@@ -315,6 +320,17 @@ async function loadHistory(more=false){
     historyOffset+=data.trips.length;$('#moreBtn').hidden=!data.more;
   }catch(e){if(!more){$('#historyList').textContent=e.message;const b=document.createElement('button');b.textContent='Reintentar';b.className='gear';b.onclick=()=>loadHistory();$('#historyList').append(b)}else notify(e.message)}
 }
+async function clearTripHistory(){
+  const write=()=>{try{localStorage.setItem(HISTORY_KEY,'[]')}catch{throw Error('No se ha podido borrar el historial. Comprueba el almacenamiento del navegador.')}};
+  if(navigator.locks?.request)await navigator.locks.request(HISTORY_KEY,write);else write();
+  selected=null;$('#receiptBody').textContent='';historyOffset=0;
+}
+$('#clearHistoryBtn').onclick=()=>$('#clearHistoryConfirm').showModal();
+$('#confirmClearHistory').onclick=async()=>{
+  const button=$('#confirmClearHistory');button.disabled=true;
+  try{await clearTripHistory();$('#clearHistoryConfirm').close();await loadHistory();notify('Historial borrado. El viaje en curso y los precios se conservan.')}
+  catch(e){notify(e.message)}finally{button.disabled=false}
+};
 $('#historyBtn').onclick=()=>{$('#history').showModal();loadHistory()};
 $('#moreBtn').onclick=async()=>{$('#moreBtn').disabled=true;await loadHistory(true);$('#moreBtn').disabled=false};
 function receiptHTML(t){
@@ -327,6 +343,7 @@ $('#downloadBtn').onclick=()=>{if(!selected)return;const html='<!doctype html><h
 // Periodic checkpoints restore the trip without unload handlers or native leave dialogs.
 render();
 recover();
+
 
 
 

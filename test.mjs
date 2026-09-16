@@ -149,3 +149,14 @@ for(let i=0;i<4;i++){clock+=1000;run('acceptPosition(normalizePosition({coords:{
 assert.equal(run('distanceKm'),0);
 run('pause()');assert.equal(run('deviceClock'),null);
 console.log('OK: Tesla counter cadence calibration, repeated/frozen values, long outages and stale epoch safeguards.');
+
+run('reset();begin()');let rawCounter=19562025000,longitude=0;
+function counterStep(ms,arrival=ms){clock+=arrival;rawCounter+=ms*1000;longitude+=.00005;ctx.packet={coords:{latitude:0,longitude,accuracy:1.4},timestamp:rawCounter};run('acceptPosition(normalizePosition(packet))')}
+for(let i=0;i<4;i++)counterStep(1000);
+let runningKm=run('distanceKm');const lineCount=run('segments.length');
+for(let i=0;i<12;i++){counterStep(200);assert.ok(run('distanceKm')>=runningKm);runningKm=run('distanceKm');assert.equal(run('segments.length'),lineCount);assert.ok(run('deviceClock.scale'))}
+clock+=2000;for(let i=0;i<10;i++){counterStep(200,0);assert.ok(run('distanceKm')>=runningKm);runningKm=run('distanceKm');assert.equal(run('segments.length'),lineCount)}
+ctx.latePacket={coords:{latitude:0,longitude:0,accuracy:1.4},timestamp:rawCounter-1000000};run('acceptPosition(normalizePosition(latePacket))');assert.equal(run('distanceKm'),runningKm);assert.equal(run('segments.length'),lineCount);
+counterStep(31000);assert.equal(run('distanceKm'),runningKm);for(let i=0;i<4;i++)counterStep(1000);assert.ok(run('distanceKm')>=runningKm);
+run('checkpoint()');const activeBefore=storage.get('voltfare.active.v2');storage.set('voltFareTariff','preserved');const historyBefore=storage.get('voltfare.pages.trips.v1');blocked=true;await assert.rejects(()=>run('clearTripHistory()'),/No se ha podido borrar/);assert.equal(storage.get('voltfare.pages.trips.v1'),historyBefore);blocked=false;await run('clearTripHistory()');assert.equal(run('readTrips().length'),0);assert.equal(storage.get('voltfare.active.v2'),activeBefore);assert.equal(storage.get('voltFareTariff'),'preserved');assert.ok(run('distanceKm')>=runningKm);
+console.log('OK: high-frequency/batched GPS preserves continuous route; gaps never decrease km; clear history preserves active trip/settings and handles failures.');

@@ -33,7 +33,7 @@
 <body>
   <div class="app">
     <header>
-      <div class="brand"><span class="bolt">ϟ</span><span>VoltFare <small style="font-size:11px;color:var(--muted)">v10 · compatible</small></span></div>
+      <div class="brand"><span class="bolt">ϟ</span><span>VoltFare <small style="font-size:11px;color:var(--muted)">v11 · compatible</small></span></div>
       <div class="control"><button class="gear" id="historyBtn" aria-describedby="historyHelp">Ver viajes y recibos</button><small id="historyHelp">Consulta o descarga un viaje terminado.</small></div>
       <div class="status"><span id="dot" class="dot"></span><span id="statusText" class="status-label">Listo para iniciar</span><div class="control"><button class="gear" id="settingsBtn" aria-describedby="settingsHelp">Configurar precios</button><small id="settingsHelp">Elige lo que cobrarás antes de empezar.</small></div></div>
       <button class="gear" id="helpBtn">Ayuda</button>
@@ -72,7 +72,7 @@
     <footer><span>Estimador para servicios VTC · No es un taxímetro homologado</span><span>Los importes son orientativos</span></footer>
   </div>
 
-  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <details class="simple-help"><summary>Datos GPS</summary><p id="gpsDiagnostics" style="overflow-wrap:anywhere">VoltFare · GPS v10 · Todavía no se ha recibido ubicación.</p></details><p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
+  <dialog id="details"><div class="modal"><div class="modal-head"><h2>Detalles del viaje</h2><button class="close" data-close="details" aria-label="Cerrar">×</button></div>        <details class="simple-help"><summary>Datos GPS</summary><p id="gpsDiagnostics" style="overflow-wrap:anywhere">VoltFare · GPS v11 · Todavía no se ha recibido ubicación.</p></details><p id="connectionInfo" role="status"></p><p id="qualityInfo" role="status"></p><h2>Desglose</h2>
         <div class="row"><span>Inicio</span><strong id="baseLine">3,50 €</strong></div>
         <div class="row"><span>Distancia</span><strong id="kmLine">0,00 €</strong></div>
         <div class="row"><span>Tiempo</span><strong id="timeLine">0,00 €</strong></div>
@@ -101,7 +101,8 @@
   </dialog>
   <dialog id="adjustment"><form class="modal" id="adjustForm"><div class="modal-head"><h2>Corregir distancia total</h2><button type="button" class="close" data-close="adjustment" aria-label="Cerrar">×</button></div><p>Introduce la distancia TOTAL del viaje, por ejemplo la diferencia del cuentakilómetros. Sustituye el total actual; no se suma. El recibo conservará el motivo.</p><div class="form"><div class="field"><label for="manualKm">Total del viaje (km)</label><input id="manualKm" type="number" min="0" max="100000" step="0.001" required></div><div class="field wide"><label for="manualReason">Motivo / lectura del cuentakilómetros</label><input id="manualReason" maxlength="200" required></div><button class="save">Aplicar ajuste</button></div></form></dialog>
   <div class="toast" id="toast" role="status"></div>
-  <dialog id="history"><div class="modal"><div class="modal-head"><h2>Historial de trayectos</h2><button class="close" data-close="history" aria-label="Cerrar">×</button></div><p>Guardado solo en este navegador y dispositivo. Si borras sus datos, perderás el historial. Descarga los recibos que quieras conservar.</p><div id="historyList"></div><button class="gear" id="moreBtn" hidden>Cargar más</button></div></dialog>
+  <dialog id="history"><div class="modal"><div class="modal-head"><h2>Historial de trayectos</h2><button class="close" data-close="history" aria-label="Cerrar">×</button></div><p>Guardado solo en este navegador y dispositivo. Si borras sus datos, perderás el historial. Descarga los recibos que quieras conservar.</p><button class="gear" id="clearHistoryBtn" style="color:var(--red);margin-bottom:16px">Borrar todo el historial</button><div id="historyList"></div><button class="gear" id="moreBtn" hidden>Cargar más</button></div></dialog>
+  <dialog id="clearHistoryConfirm"><div class="modal"><div class="modal-head"><h2>¿Borrar todos los viajes guardados?</h2><button class="close" data-close="clearHistoryConfirm" aria-label="Cerrar">×</button></div><p>Se eliminarán de este navegador todos los trayectos finalizados y sus recibos. No se puede deshacer. Descarga antes los recibos que quieras conservar.</p><p>El viaje en curso y los precios configurados se mantienen.</p><div class="receipt-actions"><button class="gear" data-close="clearHistoryConfirm">Cancelar</button><button class="gear" id="confirmClearHistory" style="color:var(--red)">Sí, borrar historial</button></div></div></dialog>
   <dialog id="receipt"><div class="modal"><div class="modal-head no-print"><h2>Recibo de trayecto</h2><button class="close" data-close="receipt" aria-label="Cerrar">×</button></div><article id="receiptBody"></article><div class="receipt-actions no-print"><button class="primary" id="printBtn">Imprimir / guardar PDF</button><button class="gear" id="downloadBtn">Descargar recibo HTML</button></div><p class="no-print">«Imprimir / guardar PDF» abre la impresión del navegador. «Descargar recibo HTML» guarda un archivo que puedes abrir después sin internet.</p></div></dialog>
   <style>
     #map{height:320px;min-height:320px;border-radius:16px;background:#202b35;z-index:0}
@@ -140,10 +141,15 @@
     @media(max-width:700px){.app{padding:10px;gap:8px}header{display:grid;grid-template-columns:1fr auto auto;gap:6px}.brand{font-size:1rem}.bolt{width:28px;height:28px;font-size:1rem}header>.control{grid-column:2}header .status{grid-row:2;grid-column:1/-1;justify-content:space-between}header>#helpBtn{grid-row:1;grid-column:3}header .gear{font-size:.72rem;min-height:34px;padding:6px 9px}.status{font-size:.75rem}main{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:8px}.meter,.side{padding:12px;border-radius:16px}.meter{gap:8px}.price{font-size:2.8rem;margin:2px 0}.eyebrow{font-size:.6rem}.estimate{font-size:.7rem}.stats{gap:6px}.stat{padding:7px 9px}.stat span{font-size:.65rem}.stat strong{font-size:1.05rem}.journey-help{font-size:.72rem;min-height:0;margin:6px 0}.primary,.finish{min-height:42px;font-size:.82rem}.actions .control small{display:none}.secondary-bar{margin-top:6px;gap:8px}.secondary-bar .gear{min-height:34px;font-size:.75rem;padding:6px}.side{gap:5px}.side h2{font-size:.8rem}#gpsInfo{font-size:.65rem;min-height:0}.map-legend{font-size:.6rem}.map-controls .gear{font-size:.7rem;min-height:34px;padding:6px}.map-controls{grid-template-columns:1fr 1fr}footer{display:none}}
     @media print{body,.app{height:auto}#details,#help{display:none!important}}
   </style>
+  <style>
+    #gpsInfo{height:4.05em;min-height:4.05em;max-height:4.05em;line-height:1.35;overflow:auto;overflow-wrap:anywhere;scrollbar-gutter:stable}
+    @media print{#clearHistoryConfirm{display:none!important}}
+  </style>
   <script src="./vendor/leaflet.js" crossorigin="anonymous"></script>
-  <script src="./app-compat.js?v=10"></script>
+  <script src="./app-compat.js?v=11"></script>
 </body>
 </html>
+
 
 
 
