@@ -96,3 +96,14 @@ clock+=16000;run('checkGps()');assert.equal(run('navigator.geolocation.requests'
 const frozen=run('distanceKm');run('pause()');clock+=1000;run('navigator.geolocation.once({coords:{latitude:0,longitude:.031,accuracy:5},timestamp:Date.now()})');assert.equal(run('distanceKm'),frozen);
 run('begin()');clock+=1000;run('notePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()})');const received=run('receivedAt');clock+=16000;run('notePosition({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()-16000})');assert.equal(run('receivedAt'),received);
 console.log('OK: fresh locate requests, silent GPS fallback, stale fix rejection, late paused callbacks ignored.');
+
+const staleKm=run('distanceKm');
+run('acceptPosition({coords:{latitude:0,longitude:.08,accuracy:5},timestamp:Date.now()-90000})');
+assert.equal(run('distanceKm'),staleKm);assert.match(run("$('#gpsInfo').textContent"),/90 segundos/);
+assert.match(run('positionIssue({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()+100000})'),/hora/);
+assert.match(run('positionIssue({coords:{latitude:0,longitude:0,accuracy:null},timestamp:Date.now()})'),/precisión/);
+assert.match(run('positionIssue({coords:{latitude:NaN,longitude:0,accuracy:5},timestamp:Date.now()})'),/coordenadas/);
+run('pause();seekCurrentPosition()');assert.notEqual(run('locateWatch'),null);
+run('navigator.geolocation.watch({coords:{latitude:0,longitude:0,accuracy:5},timestamp:Date.now()})');assert.equal(run('locateWatch'),null);
+run('seekCurrentPosition();begin()');assert.equal(run('locateWatch'),null);
+console.log('OK: stale fixes never billed, specific diagnostics, temporary watch recovery and cleanup.');

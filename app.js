@@ -43,18 +43,53 @@ try{
   estimatedRoute=L.polyline([],{color:'#e9a43b',weight:4,dashArray:'8 8'}).addTo(map);
   map.on('dragstart',()=>{followPosition=false});
 }catch{$('#map').textContent='No se pudo cargar el mapa. Comprueba tu conexión; el estimador sigue disponible.'}
-function validPosition(p){const c=p?.coords;return c&&Number.isFinite(c.latitude)&&Math.abs(c.latitude)<=90&&Number.isFinite(c.longitude)&&Math.abs(c.longitude)<=180&&Number.isFinite(c.accuracy)&&c.accuracy>=0&&Number.isFinite(p.timestamp)&&Date.now()-p.timestamp<=15000&&p.timestamp<=Date.now()+1000}
-function showPosition(c,timestamp=Date.now()){
-  if(!map||timestamp<displayedAt)return;
-  const first=!marker,p=[c.latitude,c.longitude],uncertain=c.accuracy>50;
+function hasCoordinates(p){const c=p?.coords;return !!c&&Number.isFinite(c.latitude)&&Math.abs(c.latitude)<=90&&Number.isFinite(c.longitude)&&Math.abs(c.longitude)<=180}
+function positionIssue(p){
+  if(!hasCoordinates(p))return 'No se han recibido coordenadas utilizables.';
+  if(!Number.isFinite(p.timestamp)||p.timestamp<=0)return 'La ubicación no incluye una hora válida.';
+  const age=Date.now()-p.timestamp;
+  if(age < -1000)return 'La hora de la ubicación no coincide con la del dispositivo. Revisa la fecha y hora automáticas.';
+  if(age>15000){const seconds=Math.round(age/1000);return 'Última ubicación de hace '+(seconds<120?seconds+' segundos':Math.round(seconds/60)+' minutos')+'.';}
+  if(!Number.isFinite(p.coords.accuracy)||p.coords.accuracy<0)return 'La ubicación no indica su precisión.';
+  return '';
+}
+function validPosition(p){return !positionIssue(p)}
+let lastGpsIssue='';
+function showReference(p){
+  // A cached fix can orient the map, but never participates in billing.
+  if(hasCoordinates(p)){
+    const t=Number.isFinite(p.timestamp)&&p.timestamp>0&&p.timestamp<=Date.now()+1000?p.timestamp:0;
+    showPosition(p.coords,t,true);
+  }
+  const message=positionIssue(p)+' Buscando una posición actual; no se añaden kilómetros.';
+  lastGpsIssue=message;
+  if(state==='running')loseGps(message);else $('#gpsInfo').textContent=message;
+  render();
+}
+let locateWatch=null,locateTimer=null;
+function stopLocateWatch(){if(locateWatch!==null)navigator.geolocation?.clearWatch(locateWatch);locateWatch=null;clearTimeout(locateTimer);locateTimer=null}
+function seekCurrentPosition(){
+  if(state==='running'||locateWatch!==null||!navigator.geolocation)return;
+  const g=generation;
+  locateWatch=navigator.geolocation.watchPosition(p=>{
+    if(g!==generation)return;
+    if(validPosition(p)){notePosition(p);showPosition(p.coords,p.timestamp);$('#gpsInfo').textContent='Ubicación actual · ±'+Math.round(p.coords.accuracy)+' m';stopLocateWatch();render()}
+    else showReference(p);
+  },e=>{if(g!==generation)return;stopLocateWatch();$('#gpsInfo').textContent=e.code===1?'Permiso de ubicación denegado. Actívalo en el navegador.':'El navegador no ha facilitado una posición actual. Comprueba la ubicación del dispositivo y vuelve a centrar.'},{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  locateTimer=setTimeout(()=>{stopLocateWatch();if(g===generation)$('#gpsInfo').textContent='El navegador sigue sin facilitar una posición actual. Comprueba la ubicación del dispositivo y vuelve a centrar.'},22000);
+}
+function showPosition(c,timestamp=Date.now(),reference=false){
+  if(!map||(marker&&timestamp<displayedAt))return;
+  const first=!marker,p=[c.latitude,c.longitude],uncertain=reference||!Number.isFinite(c.accuracy)||c.accuracy>50;
   displayedAt=timestamp;
   if(!marker)marker=L.circleMarker(p,{radius:8,color:'#fff',weight:3,fillOpacity:1}).addTo(map);else marker.setLatLng(p);
   marker.setStyle({fillColor:uncertain?'#e9a43b':'#14896a'});
-  if(!accuracyCircle)accuracyCircle=L.circle(p,{radius:c.accuracy,color:'#e9a43b',weight:1,fillOpacity:.08,interactive:false}).addTo(map);
-  else accuracyCircle.setLatLng(p).setRadius(c.accuracy);
+  const radius=Number.isFinite(c.accuracy)&&c.accuracy>=0?c.accuracy:0;
+  if(!accuracyCircle)accuracyCircle=L.circle(p,{radius,color:'#e9a43b',weight:1,fillOpacity:.08,interactive:false}).addTo(map);
+  else accuracyCircle.setLatLng(p).setRadius(radius);
   if(followPosition)map.setView(p,first?15:map.getZoom(),{animate:false});
 }
-function notePosition(p){if(validPosition(p)&&p.timestamp>receivedTimestamp){receivedTimestamp=p.timestamp;receivedAt=Date.now()}}
+function notePosition(p){if(validPosition(p)&&p.timestamp>receivedTimestamp){receivedTimestamp=p.timestamp;receivedAt=Date.now();lastGpsIssue=''}}
 function requestPosition(manual=false){
   if(!navigator.geolocation){notify('Ubicación no disponible en este navegador');return}
   if(positionRequest)return;
@@ -65,7 +100,7 @@ function requestPosition(manual=false){
     notePosition(p);
     if(state==='running')acceptPosition(p);
     else if(validPosition(p)){showPosition(p.coords,p.timestamp);$('#gpsInfo').textContent='Ubicación recibida · ±'+Math.round(p.coords.accuracy)+' m';render()}
-    else if(manual)notify('El navegador ha devuelto una ubicación antigua o no válida.');
+    else {showReference(p);if(manual)seekCurrentPosition();}
   },e=>{release();if(token.generation!==generation)return;if(manual)notify(e.code===1?'Activa el permiso de ubicación del navegador.':'No llega una posición nueva. Comprueba el GPS y el permiso de ubicación.')},{enableHighAccuracy:true,maximumAge:0,timeout:10000});
 }
 function checkGps(){
@@ -73,7 +108,7 @@ function checkGps(){
   const now=Date.now();
   if(positionRequest&&now-positionRequest.requested>12000)positionRequest=null;
   if(navigator.geolocation&&now-Math.max(receivedAt,requestedAt)>10000)requestPosition();
-  if(now-receivedAt>15000)loseGps('Sin posiciones nuevas del navegador. Intentando recuperar el GPS…');
+  if(now-receivedAt>15000)loseGps(lastGpsIssue||'Sin posiciones nuevas del navegador. Intentando recuperar el GPS…');
 }
 function haversine(a,b){const rad=x=>x*Math.PI/180,lat=rad(b.latitude-a.latitude),lon=rad(b.longitude-a.longitude),h=Math.sin(lat/2)**2+Math.cos(rad(a.latitude))*Math.cos(rad(b.latitude))*Math.sin(lon/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(h)))}
 let lastFix=null,gap=false,waiting=false,lastTick=0;
@@ -89,11 +124,11 @@ function tick(){
   const now=Date.now(),delta=Math.max(0,now-lastTick);lastTick=now;elapsed+=delta;
   if(waiting)trip.waitMs+=delta;
 }
-function stopGps(){generation++;if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);watchId=null;lastPos=null;lastFix=null;gap=false;speed=null;positionRequest=null}
+function stopGps(){stopLocateWatch();generation++;if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);watchId=null;lastPos=null;lastFix=null;gap=false;speed=null;positionRequest=null}
 function loseGps(message){gap=true;trip.gpsIncomplete=true;speed=null;$('#gpsInfo').textContent=message}
 function acceptPosition(p){
   const c=p.coords,now=Date.now();
-  if(!validPosition(p)){loseGps('Ubicación antigua o no válida. Esperando una posición nueva.');render();return}
+  if(!validPosition(p)){showReference(p);return}
   if(c.accuracy>50){
     showPosition(c,p.timestamp);
     loseGps('Posición aproximada (±'+Math.round(c.accuracy)+' m). Se muestra en ámbar; los kilómetros esperan mejor precisión.');render();return;
@@ -237,6 +272,7 @@ $('#downloadBtn').onclick=()=>{if(!selected)return;const html='<!doctype html><h
 window.addEventListener('beforeunload',e=>{if(trip){e.preventDefault();e.returnValue=''}});
 render();
 recover();
+
 
 
 
