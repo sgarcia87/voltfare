@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="strict-origin-when-cross-origin"><title>BIAS BEATS · prueba temporal</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0b0618;color:#fff}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at 50% 0,#6d238b55,transparent 55%),linear-gradient(#100621,#10091c);padding:22px 14px 45px}
+main{max-width:680px;margin:auto}.head{text-align:center;margin:0 0 20px}.eyebrow{font-size:11px;letter-spacing:3px;color:#f7c7ff;font-weight:800}.logo{font-size:clamp(32px,9vw,54px);font-weight:1000;margin:6px 0;background:linear-gradient(110deg,#fff,#ffa7e9 45%,#9ddfff);background-clip:text;-webkit-background-clip:text;color:transparent;filter:drop-shadow(0 0 14px #fc65c960)}
+p{color:#decce9;line-height:1.5;font-size:13px}.panel{border:1px solid #e5b4ff57;border-radius:22px;background:linear-gradient(130deg,#3f1a56ba,#180e2cdb);padding:16px;box-shadow:0 15px 35px #0005;margin-bottom:16px}
+label{display:block;font-size:11px;color:#f2d3ff;font-weight:850;letter-spacing:1px;margin-bottom:8px}.options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.choice{padding:12px 8px;min-height:66px;background:#3b2156;color:white;border:1px solid #a979cd8a;border-radius:13px;font-weight:900;cursor:pointer}.choice small{display:block;margin-top:4px;color:#d9bde9;font-size:10px;font-weight:550}.choice.active{background:linear-gradient(125deg,#c343a0,#6056c9);border-color:#ffcee9;box-shadow:0 0 20px #d64bab7a}
+.player{margin:15px auto;min-height:225px;width:100%;background:#090612;border-radius:16px;overflow:hidden;border:1px solid #e4c3ff63;display:grid;place-items:center}
+#yt{width:100%;height:clamp(225px,51vw,350px);min-height:225px}#yt iframe{width:100%!important;height:100%!important;min-height:225px}
+button{touch-action:manipulation}.primary{display:block;width:100%;background:linear-gradient(110deg,#ffb2e4,#a08bff);color:#1d0732;border:0;border-radius:15px;padding:15px;font-size:15px;font-weight:1000;cursor:pointer}
+.primary:disabled{opacity:.45}.tools{display:flex;gap:8px;margin:10px 0}.minor{border:1px solid #bd90d3;background:#2c1743;color:#fff;border-radius:12px;padding:11px 12px;font-weight:800;flex:1;cursor:pointer}
+.status{background:#110b24;border:1px solid #ffffff26;border-radius:12px;padding:12px;font-size:12px;line-height:1.5;min-height:58px;color:#e5d5f4}.status strong{color:#fff}
+a{color:#9de5ff}.counter{font-variant-numeric:tabular-nums;color:#fff3ae;font-weight:850}.answers{display:flex;gap:8px;margin-top:10px}.answers button{flex:1;padding:10px;border-radius:11px;border:1px solid #bfa9d2;color:#fff;background:#35214d;font-weight:800}.answers button.selected{background:#6a397b;border-color:#fbd0f4}
+.warn{font-size:11px;color:#e7cdea}.hint{font-size:11px;color:#e8d1f5}
+@media(max-width:360px){.options{grid-template-columns:1fr 1fr}.choice{font-size:12px}}
+</style></head>
+<body><main>
+<header class="head"><div class="eyebrow">TEST TEMPORAL · YOUTUBE</div><div class="logo">BIAS BEATS</div><p>Prueba real de reproducción de videoclips y anuncios en el móvil. No modifica BIAS RUSH.</p></header>
+<section class="panel"><label>1 · ELIGE UN VÍDEO OFICIAL</label><div class="options" id="options"></div>
+<div class="player" id="playerShell"><div id="yt"><span class="hint">Pulsa «Preparar vídeo» y después Play en YouTube.</span></div></div>
+<button class="primary" id="loadBtn">▶ PREPARAR VÍDEO</button>
+<div class="tools"><button class="minor" id="stopBtn">■ Detener</button><button class="minor" id="nextBtn">Siguiente vídeo</button></div>
+<div id="status" class="status" role="status">Elige un vídeo y pulsa «Preparar vídeo».</div>
+<p class="hint">Pulsa Play en el reproductor visible. Si aparece un anuncio, comprueba si retrasa la música. Algunos vídeos pueden bloquear la inserción. <a id="source" target="_blank" rel="noopener">Ver en YouTube</a></p></section>
+<section class="panel"><label>2 · ¿HAS VISTO ANUNCIOS?</label><div class="answers"><button data-ad="sí">Sí</button><button data-ad="no">No</button><button data-ad="no seguro">No sé</button></div>
+<p id="observations" class="hint">Indica lo que has observado. La web no puede detectar anuncios de YouTube de forma fiable.</p>
+<div class="tools"><button id="copyBtn" class="minor">Copiar diagnóstico</button><button id="clearBtn" class="minor">Reiniciar</button></div></section>
+<p class="warn">Se utilizan vídeos oficiales integrados desde YouTube. No se descargan pistas, no se oculta el reproductor ni se envían diagnósticos a ningún servidor. Esta carpeta de prueba se eliminará al acabar.</p>
+</main>
+<script>
+(()=>{
+'use strict';
+const TRACKS=[
+{artist:'BTS',title:'Dynamite',channel:'HYBE LABELS',id:'gdZLi9oWNZg',start:42},
+{artist:'Stray Kids',title:"God's Menu",channel:'JYP Entertainment',id:'TQTlCHxyuu8',start:36},
+{artist:'TWICE',title:'Fancy',channel:'JYP Entertainment',id:'kOHB85vDuow',start:40},
+{artist:'LE SSERAFIM',title:'Antifragile',channel:'HYBE LABELS',id:'pyf8cbqyfPs',start:44}
+];
+const $=x=>document.getElementById(x);let current=0,player=null,apiPromise=null,loadedAt=0,readyAt=0,playingAt=0,ad='no seguro',log=[];
+function message(msg){$('status').innerHTML=msg;log.push(new Date().toLocaleTimeString()+' · '+msg.replace(/<[^>]+>/g,''))}
+function showOptions(){const box=$('options');box.replaceChildren();TRACKS.forEach((t,i)=>{const b=document.createElement('button');b.className='choice'+(i===current?' active':'');b.innerHTML=t.artist+'<small>'+t.title+'</small>';b.onclick=()=>select(i);box.append(b)});const t=TRACKS[current];$('source').href='https://www.youtube.com/watch?v='+t.id}
+function select(i){current=i;showOptions();resetPlayer();message('Seleccionado: <strong>'+TRACKS[i].artist+' — '+TRACKS[i].title+'</strong>');document.querySelectorAll('[data-ad]').forEach(b=>b.classList.remove('selected'));ad='no seguro';$('observations').textContent='Anuncios: sin observar.'}
+function loadApi(){if(window.YT?.Player)return Promise.resolve(window.YT);if(apiPromise)return apiPromise;apiPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';s.onerror=()=>reject(Error('No ha cargado la API de YouTube'));document.head.append(s);window.onYouTubeIframeAPIReady=()=>resolve(window.YT);setTimeout(()=>reject(Error('Tiempo de espera de API agotado')),12000)});return apiPromise}
+function resetPlayer(){try{player?.destroy()}catch(e){}player=null;let node=$('yt');if(!node){$('playerShell').innerHTML='<div id="yt"></div>';node=$('yt')}node.replaceChildren();node.innerHTML='<span class="hint">Pulsa «Preparar vídeo» y después Play.</span>'}
+async function load(){resetPlayer();loadedAt=performance.now();readyAt=0;playingAt=0;const t=TRACKS[current];message('Conectando con YouTube…');$('loadBtn').disabled=true;try{const YT=await loadApi();$('yt').replaceChildren();player=new YT.Player('yt',{height:'250',width:'100%',videoId:t.id,playerVars:{controls:1,playsinline:1,rel:0,start:t.start,end:t.start+15,origin:location.origin},events:{
+onReady:e=>{readyAt=performance.now();message('Reproductor listo en <strong>'+((readyAt-loadedAt)/1000).toFixed(2)+' s</strong>. Pulsa Play dentro del vídeo.');$('loadBtn').disabled=false},
+onStateChange:e=>{const n=e.data;if(n===YT.PlayerState.PLAYING){playingAt=performance.now();message('Vídeo reproduciéndose. Desde solicitud: <strong>'+((playingAt-loadedAt)/1000).toFixed(2)+' s</strong>. ¿Hubo anuncio antes?');}else if(n===YT.PlayerState.BUFFERING){message('Cargando contenido / buffering…')}else if(n===YT.PlayerState.ENDED){message('Fragmento finalizado.')}else if(n===YT.PlayerState.PAUSED){message('Vídeo pausado.')}else if(n===YT.PlayerState.CUED){message('Vídeo preparado: pulsa Play.')}} ,
+onError:e=>{message('<strong>Error de YouTube '+e.data+'</strong>. '+(e.data===153?'Falta identificación válida del reproductor.':e.data===101||e.data===150?'El propietario impide insertar este vídeo.':'Comprueba el enlace y las restricciones.'));$('loadBtn').disabled=false}
+}})}catch(e){message('<strong>Error:</strong> '+String(e.message||e));$('loadBtn').disabled=false}}
+$('loadBtn').onclick=load;$('stopBtn').onclick=()=>{try{player?.stopVideo()}catch(e){}message('Reproducción detenida por el usuario.')};$('nextBtn').onclick=()=>select((current+1)%TRACKS.length);
+document.querySelectorAll('[data-ad]').forEach(b=>{b.onclick=()=>{ad=b.dataset.ad;document.querySelectorAll('[data-ad]').forEach(x=>x.classList.toggle('selected',x===b));$('observations').textContent='Anuncios observados: '+ad+'.';log.push('Observación de anuncio: '+ad)}});
+$('copyBtn').onclick=async()=>{const t=TRACKS[current];const report=['BIAS BEATS · prueba YouTube','Web: '+location.href,'Vídeo: '+t.artist+' — '+t.title,'YouTube ID: '+t.id,'Anuncios observados: '+ad,'Tiempo a reproductor: '+(readyAt?((readyAt-loadedAt)/1000).toFixed(2)+' s':'sin confirmar'),'Tiempo a reproducción: '+(playingAt?((playingAt-loadedAt)/1000).toFixed(2)+' s':'sin confirmar'),'Registro:',...log].join('\n');try{await navigator.clipboard.writeText(report);message('Diagnóstico copiado. Pégalo en ChatGPT.')}catch(e){const input=document.createElement('textarea');input.value=report;input.style.width='100%';$('status').append(input);input.focus();input.select();message('Selecciona y copia el diagnóstico visible.') }};
+$('clearBtn').onclick=()=>{resetPlayer();log=[];ad='no seguro';message('Diagnóstico reiniciado.');$('observations').textContent='Anuncios: sin observar.';document.querySelectorAll('[data-ad]').forEach(x=>x.classList.remove('selected'))};
+showOptions();
+})();
+</script>
+</body></html>
